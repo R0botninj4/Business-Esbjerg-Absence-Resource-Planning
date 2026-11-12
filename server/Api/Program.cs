@@ -1,8 +1,10 @@
 using Infra;
 using LinqToDB;
+using LinqToDB.Data;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Service;
+using System.Security.Claims;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -22,7 +24,25 @@ if (builder.Environment.IsDevelopment())
 }
 
 builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
-    .AddCookie();
+    .AddCookie(options =>
+    {
+        options.Events.OnValidatePrincipal = context =>
+        {
+            var principal = context.Principal;
+            var user = Guid.TryParse(principal?.FindFirstValue(ClaimTypes.NameIdentifier), out var id)
+                ? context.HttpContext.RequestServices.GetRequiredService<UserService>().Find(id)
+                : null;
+
+            if (user is null ||
+                user.Email != principal?.FindFirstValue(ClaimTypes.Email) ||
+                user.Role != principal?.FindFirstValue(ClaimTypes.Role))
+            {
+                context.RejectPrincipal();
+            }
+
+            return Task.CompletedTask;
+        };
+    });
 
 builder.Services.AddAuthorization();
 var app = builder.Build();
@@ -47,25 +67,22 @@ if (app.Environment.IsDevelopment())
     using var scope = app.Services.CreateScope();
     var db = scope.ServiceProvider.GetRequiredService<MyDatabaseConnection>();
     db.CreateTable<User>(tableOptions: TableOptions.CreateIfNotExists);
+    db.Execute("CREATE UNIQUE INDEX IF NOT EXISTS UX_Users_Email ON Users (Email)");
+    var users = scope.ServiceProvider.GetRequiredService<UserService>();
 
-    var email = app.Configuration["SeedEmployeeEmail"]?.Trim().ToLowerInvariant();
-    var password = app.Configuration["SeedEmployeePassword"];
+    SeedUser("Employee");
+    SeedUser("Admin");
 
-    if (!string.IsNullOrWhiteSpace(email) &&
-        !string.IsNullOrWhiteSpace(password) &&
-        !db.Users.Any(user => user.Email == email))
+    void SeedUser(string role)
     {
-        var employee = new User
+        var email = app.Configuration[$"Seed{role}Email"];
+        var password = app.Configuration[$"Seed{role}Password"];
+        if (!string.IsNullOrWhiteSpace(email) &&
+            !string.IsNullOrWhiteSpace(password) &&
+            !users.EmailExists(email))
         {
-            Id = Guid.NewGuid(),
-            Email = email,
-            Role = "Employee"
-        };
-
-        employee.PasswordHash = new PasswordHasher<User>()
-            .HashPassword(employee, password);
-
-        db.Insert(employee);
+            users.Create(email, password, role);
+        }
     }
 }
 
