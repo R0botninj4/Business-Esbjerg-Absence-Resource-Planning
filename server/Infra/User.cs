@@ -1,4 +1,4 @@
-﻿using LinqToDB.Mapping;
+using LinqToDB.Mapping;
 
 namespace Infra;
 
@@ -16,4 +16,7 @@ public class User
 
     [Column, NotNull]
     public string Role { get; set; } = "Employee";
+
+    [Column, NotNull]
+    public bool IsActive { get; set; } = true;
 }

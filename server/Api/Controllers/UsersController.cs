@@ -78,8 +78,9 @@ public class UsersController(UserService users) : ControllerBase
         [Required, EmailAddress, StringLength(254)] string Email,
         [Required, RegularExpression("Admin|Employee|Accounting")] string Role);
 
-    public record UserResponse(Guid Id, string Email, string Role)
+    public record UserResponse(Guid Id, string Email, string Role, bool IsActive)
     {
-        public static UserResponse From(User user) => new(user.Id, user.Email, user.Role);
+        public static UserResponse From(User user) =>
+            new(user.Id, user.Email, user.Role, user.IsActive);
     }
 }
