@@ -114,12 +114,19 @@ public class LoginTests
             using var forbidden = await employee.GetAsync("/api/users");
             Assert.Equal(HttpStatusCode.Forbidden, forbidden.StatusCode);
 
-            using var deleted = await admin.DeleteAsync(userPath);
-            Assert.Equal(HttpStatusCode.NoContent, deleted.StatusCode);
-            using var missing = await admin.GetAsync(userPath);
-            Assert.Equal(HttpStatusCode.NotFound, missing.StatusCode);
+            using var deactivated = await admin.DeleteAsync(userPath);
+            Assert.Equal(HttpStatusCode.NoContent, deactivated.StatusCode);
+
+            using var retainedUser = await admin.GetAsync(userPath);
+            Assert.Equal(HttpStatusCode.OK, retainedUser.StatusCode);
+            var retainedProfile = await retainedUser.Content.ReadFromJsonAsync<JsonElement>();
+            Assert.False(retainedProfile.GetProperty("isActive").GetBoolean());
+
             using var expiredSession = await employee.GetAsync("/api/auth/me");
             Assert.Equal(HttpStatusCode.Unauthorized, expiredSession.StatusCode);
+
+            using var retryLogin = await employee.PostAsJsonAsync("/api/auth/login", new { email, password });
+            Assert.Equal(HttpStatusCode.Unauthorized, retryLogin.StatusCode);
         }
         finally
         {

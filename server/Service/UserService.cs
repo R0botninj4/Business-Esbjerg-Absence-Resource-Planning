@@ -24,7 +24,10 @@ public class UserService(MyDatabaseConnection db, IPasswordHasher<User> password
         .Set(user => user.Role, role)
         .Update() != 0;
 
-    public bool Delete(Guid id) => db.Users.Where(user => user.Id == id).Delete() != 0;
+    public bool Delete(Guid id) => db.Users
+        .Where(user => user.Id == id)
+        .Set(user => user.IsActive, false)
+        .Update() != 0;
 
     public bool EmailExists(string email) => db.Users.Any(user => user.Email == NormalizeEmail(email));
 
@@ -33,7 +36,7 @@ public class UserService(MyDatabaseConnection db, IPasswordHasher<User> password
         var normalizedEmail = NormalizeEmail(email);
         var user = db.Users.SingleOrDefault(user => user.Email == normalizedEmail);
 
-        if (user is null)
+        if (user is null || !user.IsActive)
         {
             return null;
         }

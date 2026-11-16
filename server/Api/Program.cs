@@ -34,6 +34,7 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
                 : null;
 
             if (user is null ||
+                !user.IsActive ||
                 user.Email != principal?.FindFirstValue(ClaimTypes.Email) ||
                 user.Role != principal?.FindFirstValue(ClaimTypes.Role))
             {
@@ -69,6 +70,14 @@ if (app.Environment.IsDevelopment())
     db.CreateTable<User>(tableOptions: TableOptions.CreateIfNotExists);
     db.Execute("CREATE UNIQUE INDEX IF NOT EXISTS UX_Users_Email ON Users (Email)");
     var users = scope.ServiceProvider.GetRequiredService<UserService>();
+
+    var hasIsActiveColumn = db.Execute<int>(
+        "SELECT COUNT(*) FROM pragma_table_info('Users') WHERE name = 'IsActive'") > 0;
+
+    if (!hasIsActiveColumn)
+    {
+        db.Execute("ALTER TABLE Users ADD COLUMN IsActive INTEGER NOT NULL DEFAULT 1");
+    }
 
     SeedUser("Employee");
     SeedUser("Admin");
