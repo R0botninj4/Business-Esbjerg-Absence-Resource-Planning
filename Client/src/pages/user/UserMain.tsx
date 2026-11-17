@@ -1,8 +1,3 @@
 export function UserMain() {
-    return (
-        <div>
-            <button>Request Holiday</button>
-            <button>My Requests</button>
-        </div>
-    );
+    return <h1 className="text-3xl">User Overview</h1>;
 }

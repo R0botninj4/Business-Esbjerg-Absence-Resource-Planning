@@ -1,8 +1,3 @@
 export function AdminMain() {
-    return (
-        <div>
-            <button>Calendar</button>
-            <button>Users</button>
-        </div>
-    );
+    return <h1 className="text-3xl">Admin overview</h1>;
 }
