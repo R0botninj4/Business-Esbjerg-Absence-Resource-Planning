@@ -1,4 +1,26 @@
-body {
-  margin: 0;
-  font-family: system-ui, Arial, sans-serif;
+@import url("https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700;800&family=Barlow+Semi+Condensed:wght@600;700;800&display=swap");
+@import "tailwindcss";
+
+@theme {
+  /* Business Esbjerg brand colours */
+  --color-navy: #023459;
+  --color-orange: #bc5334;
+  --color-orange-light: #ce6b4c;
+  --color-slate: #70888a;
+  --color-gold: #bb8c54;
+  --color-cream: #fffaf0;
+  --color-line: #f0eadf;
+
+  /* Fonts */
+  --font-sans: "Barlow", system-ui, sans-serif;
+  --font-heading: "Barlow Semi Condensed", "Barlow", sans-serif;
+}
+
+@layer base {
+  body {
+    @apply bg-cream text-navy font-sans;
+  }
+  h1, h2, h3 {
+    @apply font-heading font-bold;
+  }
 }
