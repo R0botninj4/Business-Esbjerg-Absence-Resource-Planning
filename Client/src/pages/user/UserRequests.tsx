@@ -1,7 +1,3 @@
 export function UserRequests() {
-    return (
-        <div>
-            <button>Login</button>
-        </div>
-    );
+    return <h1 className="text-3xl">User Requests</h1>;
 }

@@ -1,0 +1,3 @@
+export function Users() {
+    return <h1 className="text-3xl">Users</h1>;
+}

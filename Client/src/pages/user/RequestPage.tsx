@@ -1,8 +1,3 @@
 export function RequestPage() {
-    return (
-        <div>
-            <button>Overview</button>
-            <button>My Requests</button>
-        </div>
-    );
+    return <h1 className="text-3xl">Requests</h1>;
 }
