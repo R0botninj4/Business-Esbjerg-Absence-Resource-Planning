@@ -6,6 +6,7 @@ type Props = {
     end: Date | null;
     onSelect: (day: Date) => void;
     events?: CalendarEvent[];
+    requested?: { start: Date; end: Date }[];
 };
 
 const weekdays = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
@@ -16,7 +17,7 @@ const eventColors = {
     info: "text-navy",
 };
 
-export function Calendar({ start, end, onSelect, events = [] }: Props) {
+export function Calendar({ start, end, onSelect, events = [], requested = [] }: Props) {
     const today = new Date();
     const [month, setMonth] = useState(new Date(today.getFullYear(), today.getMonth(), 1));
 
@@ -27,13 +28,20 @@ export function Calendar({ start, end, onSelect, events = [] }: Props) {
 
     const year = month.getFullYear();
     const monthIndex = month.getMonth();
-    const daysInMonth = new Date(year, monthIndex + 1, 0).getDate();
-    const emptyCells = (month.getDay() + 6) % 7; // Monday = 0, Sunday = 6
+    const daysInMonth = new Date(year, monthIndex + 1, 0).getDate(); // day 0 of next month = last day of this month
 
-    const days: (Date | null)[] = [
-        ...Array(emptyCells).fill(null),
-        ...Array.from({ length: daysInMonth }, (_, i) => new Date(year, monthIndex, i + 1)),
-    ];
+    // How many empty squares before the 1st (Monday = 0, Sunday = 6)
+    let emptyCells = month.getDay() - 1;
+    if (emptyCells === -1) emptyCells = 6;
+
+    // One entry per square: null for empty squares, then one Date per day
+    const days: (Date | null)[] = [];
+    for (let i = 0; i < emptyCells; i++) {
+        days.push(null);
+    }
+    for (let d = 1; d <= daysInMonth; d++) {
+        days.push(new Date(year, monthIndex, d));
+    }
 
     function changeMonth(step: number) {
         setMonth(new Date(year, monthIndex + step, 1));
@@ -45,19 +53,21 @@ export function Calendar({ start, end, onSelect, events = [] }: Props) {
 
     function dayClass(day: Date) {
         const time = day.getTime();
-        const isEdge = time === start?.getTime() || time === end?.getTime();
+        const isEdge = (start && time === start.getTime()) || (end && time === end.getTime());
         const isBetween = start && end && time > start.getTime() && time < end.getTime();
         const isWeekend = day.getDay() === 0 || day.getDay() === 6;
         const isDayOff = eventsOn(day).some(event => event.type !== "info");
+        const isRequested = requested.some(r => time >= r.start.getTime() && time <= r.end.getTime());
 
         if (isEdge) return "bg-orange text-white";
         if (isBetween) return "bg-orange/20";
+        if (isRequested) return "bg-slate/40 text-white";
         if (isWeekend || isDayOff) return "bg-line text-slate";
         return "bg-white hover:bg-orange/10";
     }
 
     return (
-        <div className="max-w-2xl">
+        <div className="w-full">
             <div className="flex items-center justify-between mb-4">
                 <button onClick={() => changeMonth(-1)} className="px-3 py-1 hover:text-orange">←</button>
                 <h2 className="text-2xl">
