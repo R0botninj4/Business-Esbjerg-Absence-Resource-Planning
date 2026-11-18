@@ -4,11 +4,11 @@ using System.Text.Json;
 using Infra;
 using LinqToDB;
 using Microsoft.AspNetCore.Hosting;
-using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Service;
 
 namespace Api.IntegrationTests;
 
@@ -28,11 +28,8 @@ public class LoginTests
 
             using (var scope = factory.Services.CreateScope())
             {
-                var db = scope.ServiceProvider.GetRequiredService<MyDatabaseConnection>();
-                var hasher = scope.ServiceProvider.GetRequiredService<IPasswordHasher<User>>();
-                var employee = new User { Id = Guid.NewGuid(), Email = email, Role = "Employee" };
-                employee.PasswordHash = hasher.HashPassword(employee, password);
-                db.Insert(employee);
+                var users = scope.ServiceProvider.GetRequiredService<UserService>();
+                users.Create(email, password, "Employee");
             }
 
             using var beforeLogin = await client.GetAsync("/api/auth/me");
@@ -79,8 +76,8 @@ public class LoginTests
 
             using (var scope = factory.Services.CreateScope())
             {
-                scope.ServiceProvider.GetRequiredService<Service.UserService>()
-                    .Create(adminEmail, password, "Admin");
+                var users = scope.ServiceProvider.GetRequiredService<UserService>();
+                users.Create(adminEmail, password, "Admin");
             }
 
             using var adminLogin = await admin.PostAsJsonAsync(
@@ -134,8 +131,49 @@ public class LoginTests
         }
     }
 
-    private static WebApplicationFactory<Program> CreateFactory(string databasePath) =>
-        new WebApplicationFactory<Program>().WithWebHostBuilder(builder =>
+    [Fact]
+    public async Task Admin_CannotCreateOverlappingEmployment()
+    {
+        const string adminEmail = "employment-admin@example.test";
+        const string password = "EmploymentTestPassword123!";
+        var databasePath = Path.Combine(Path.GetTempPath(), $"{Guid.NewGuid():N}.db");
+
+        try
+        {
+            using var factory = CreateFactory(databasePath);
+            using var client = CreateClient(factory);
+
+            Guid employeeId;
+            using (var scope = factory.Services.CreateScope())
+            {
+                var users = scope.ServiceProvider.GetRequiredService<UserService>();
+                users.Create(adminEmail, password, "Admin");
+                var employee = users.Create("employment-employee@example.test", password, "Employee");
+                employeeId = employee.Id;
+            }
+
+            using var login = await client.PostAsJsonAsync(
+                "/api/auth/login", new { email = adminEmail, password });
+            Assert.Equal(HttpStatusCode.OK, login.StatusCode);
+
+            var path = $"/api/users/{employeeId}/employments";
+            var period = new { type = EmploymentType.FullTime, startDate = new DateOnly(2026, 11, 17) };
+
+            using var first = await client.PostAsJsonAsync(path, period);
+            Assert.Equal(HttpStatusCode.Created, first.StatusCode);
+
+            using var second = await client.PostAsJsonAsync(path, period);
+            Assert.Equal(HttpStatusCode.Conflict, second.StatusCode);
+        }
+        finally
+        {
+            File.Delete(databasePath);
+        }
+    }
+
+    private static WebApplicationFactory<Program> CreateFactory(string databasePath)
+    {
+        return new WebApplicationFactory<Program>().WithWebHostBuilder(builder =>
         {
             builder.UseEnvironment("Development");
             builder.ConfigureTestServices(services =>
@@ -147,12 +185,15 @@ public class LoginTests
                     new DataOptions<MyDatabaseConnection>(options)));
             });
         });
+    }
 
-    private static HttpClient CreateClient(WebApplicationFactory<Program> factory) =>
-        factory.CreateClient(new WebApplicationFactoryClientOptions
+    private static HttpClient CreateClient(WebApplicationFactory<Program> factory)
+    {
+        return factory.CreateClient(new WebApplicationFactoryClientOptions
         {
             BaseAddress = new Uri("https://localhost"),
             AllowAutoRedirect = false,
             HandleCookies = true
         });
+    }
 }
