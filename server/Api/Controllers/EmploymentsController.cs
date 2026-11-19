@@ -2,20 +2,39 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Service;
+using System.Security.Claims;
 
 namespace Api.Controllers;
 
 [ApiController]
-[Authorize(Roles = "Admin")]
+[Authorize]
 [Route("api/users/{userId:guid}/employments")]
-public class EmploymentsController(EmploymentService employmentService) : ControllerBase
+public class EmploymentsController : ControllerBase
 {
-    [HttpGet]
-    public Employment[] Get(Guid userId)
+    private readonly EmploymentService employmentService;
+
+    public EmploymentsController(EmploymentService service)
     {
-        return employmentService.GetByUserId(userId);
+        employmentService = service;
+    }
+
+    [HttpGet]
+    public ActionResult<Employment[]> Get(Guid userId)
+    {
+        var isAdmin = User.IsInRole("Admin");
+        var isAccounting = User.IsInRole("Accounting");
+        var loggedInUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        var isOwnAccount = loggedInUserId == userId.ToString();
+
+        if (!isAdmin && !isAccounting && !isOwnAccount)
+        {
+            return Forbid();
+        }
+
+        return Ok(employmentService.GetByUserId(userId));
     }
     [HttpPatch("{employmentId:guid}/end")]
+    [Authorize(Roles = "Admin")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -36,15 +55,19 @@ public class EmploymentsController(EmploymentService employmentService) : Contro
 
         if (!employmentService.End(userId, employmentId, request.EndDate))
         {
-            return Conflict(new { message = "Ansættelsesperioden er allerede afsluttet." });
+            return Conflict(new { message = "Perioden er allerede afsluttet, eller en ugeplan starter efter slutdatoen." });
         }
 
         return NoContent();
     }
 
-    public record EndEmploymentRequest(DateOnly EndDate);
+    public class EndEmploymentRequest
+    {
+        public DateOnly EndDate { get; set; }
+    }
 
     [HttpPost]
+    [Authorize(Roles = "Admin")]
     [ProducesResponseType(typeof(Employment), StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -59,7 +82,7 @@ public class EmploymentsController(EmploymentService employmentService) : Contro
         try
         {
             var employment = employmentService.Create(
-                userId, request.Type, request.StartDate, request.EndDate);
+                userId, request.Type, request.StartDate, request.EndDate, request.Days);
 
             if (employment is null)
             {
@@ -69,7 +92,6 @@ public class EmploymentsController(EmploymentService employmentService) : Contro
             return StatusCode(StatusCodes.Status201Created, employment);
         }
         catch (ArgumentException exception)
-            when (exception.ParamName is "startDate" or "endDate")
         {
             return BadRequest(new { message = exception.Message });
         }
@@ -79,8 +101,14 @@ public class EmploymentsController(EmploymentService employmentService) : Contro
         }
     }
 
-    public record CreateEmploymentRequest(
-        EmploymentType Type,
-        DateOnly StartDate,
-        DateOnly? EndDate);
+    public class CreateEmploymentRequest
+    {
+        public EmploymentType Type { get; set; }
+
+        public DateOnly StartDate { get; set; }
+
+        public DateOnly? EndDate { get; set; }
+
+        public WorkScheduleDayRequest[]? Days { get; set; }
+    }
 }
