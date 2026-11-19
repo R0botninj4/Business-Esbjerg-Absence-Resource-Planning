@@ -13,6 +13,7 @@ builder.Services.AddScoped<UserService>();
 builder.Services.AddControllers();
 builder.Services.AddScoped<UserService>();
 builder.Services.AddScoped<EmploymentService>();
+builder.Services.AddScoped<WorkScheduleService>();
 builder.Services.AddOpenApi();
 if (builder.Environment.IsDevelopment())
 {
@@ -68,8 +69,9 @@ if (app.Environment.IsDevelopment())
     var db = scope.ServiceProvider.GetRequiredService<MyDatabaseConnection>();
     db.CreateTable<User>(tableOptions: TableOptions.CreateIfNotExists);
     db.Execute("CREATE UNIQUE INDEX IF NOT EXISTS UX_Users_Email ON Users (Email)");
-    db.CreateTable<User>(tableOptions: TableOptions.CreateIfNotExists);
     db.CreateTable<Employment>(tableOptions: TableOptions.CreateIfNotExists);
+    db.CreateTable<WorkSchedule>(tableOptions: TableOptions.CreateIfNotExists);
+    db.CreateTable<WorkScheduleDay>(tableOptions: TableOptions.CreateIfNotExists);
     var users = scope.ServiceProvider.GetRequiredService<UserService>();
 
     var hasIsActiveColumn = db.Execute<int>(

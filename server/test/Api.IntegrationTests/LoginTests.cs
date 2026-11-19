@@ -1,4 +1,4 @@
-﻿using System.Net;
+using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
 using Infra;
@@ -19,6 +19,7 @@ public class LoginTests
     {
         const string email = "employee@example.test";
         const string password = "LocalTestPassword123!";
+        // Hver test får sin egen database, så testene ikke påvirker hinanden.
         var databasePath = Path.Combine(Path.GetTempPath(), $"{Guid.NewGuid():N}.db");
 
         try
@@ -47,6 +48,7 @@ public class LoginTests
         }
         finally
         {
+            // Ryd testens database op bagefter.
             File.Delete(databasePath);
         }
     }
@@ -120,6 +122,7 @@ public class LoginTests
         const string adminEmail = "admin-crud@example.test";
         const string email = "employee-crud@example.test";
         const string password = "CrudTestPassword123!";
+        // Hver test får sin egen database, så testene ikke påvirker hinanden.
         var databasePath = Path.Combine(Path.GetTempPath(), $"{Guid.NewGuid():N}.db");
 
         try
@@ -152,7 +155,8 @@ public class LoginTests
             Assert.Equal(HttpStatusCode.Created, created.StatusCode);
             var body = await created.Content.ReadFromJsonAsync<JsonElement>();
             Assert.False(body.TryGetProperty("passwordHash", out _));
-            var userPath = created.Headers.Location!.PathAndQuery;
+            Assert.NotNull(created.Headers.Location);
+            var userPath = created.Headers.Location.PathAndQuery;
 
             using var duplicate = await admin.PostAsJsonAsync("/api/users", request);
             Assert.Equal(HttpStatusCode.Conflict, duplicate.StatusCode);
@@ -160,7 +164,15 @@ public class LoginTests
             using var listed = await admin.GetAsync("/api/users");
             Assert.Equal(HttpStatusCode.OK, listed.StatusCode);
             var list = await listed.Content.ReadFromJsonAsync<JsonElement>();
-            Assert.Contains(list.EnumerateArray(), user => user.GetProperty("email").GetString() == email);
+            bool foundEmployee = false;
+            foreach (var user in list.EnumerateArray())
+            {
+                if (user.GetProperty("email").GetString() == email)
+                {
+                    foundEmployee = true;
+                }
+            }
+            Assert.True(foundEmployee);
 
             using var updated = await admin.PutAsJsonAsync(userPath, new { email, role = "Accounting" });
             Assert.Equal(HttpStatusCode.NoContent, updated.StatusCode);
@@ -190,6 +202,7 @@ public class LoginTests
         }
         finally
         {
+            // Ryd testens database op bagefter.
             File.Delete(databasePath);
         }
     }
@@ -199,6 +212,7 @@ public class LoginTests
     {
         const string adminEmail = "employment-admin@example.test";
         const string password = "EmploymentTestPassword123!";
+        // Hver test får sin egen database, så testene ikke påvirker hinanden.
         var databasePath = Path.Combine(Path.GetTempPath(), $"{Guid.NewGuid():N}.db");
 
         try
@@ -225,17 +239,126 @@ public class LoginTests
             using var first = await client.PostAsJsonAsync(path, period);
             Assert.Equal(HttpStatusCode.Created, first.StatusCode);
 
+            var employment = await first.Content.ReadFromJsonAsync<Employment>();
+            Assert.NotNull(employment);
+            using (var scope = factory.Services.CreateScope())
+            {
+                var schedules = scope.ServiceProvider.GetRequiredService<WorkScheduleService>();
+                var plans = schedules.GetByEmploymentId(employment.Id);
+                var plan = Assert.Single(plans);
+                Assert.Equal(employment.StartDate, plan.StartDate);
+                Assert.Equal(employment.EndDate, plan.EndDate);
+
+                var days = schedules.GetDays(plan.Id);
+                Assert.Equal(5, days.Length);
+                double totalHours = 0;
+                foreach (var day in days)
+                {
+                    Assert.False(day.IsDayOff);
+                    Assert.True(day.StartTime.HasValue);
+                    Assert.True(day.EndTime.HasValue);
+                    var startTime = day.StartTime.GetValueOrDefault();
+                    var endTime = day.EndTime.GetValueOrDefault();
+                    var hours = endTime - startTime;
+                    totalHours += hours.TotalHours;
+                }
+                Assert.Equal(37, totalHours);
+            }
+
             using var second = await client.PostAsJsonAsync(path, period);
             Assert.Equal(HttpStatusCode.Conflict, second.StatusCode);
         }
         finally
         {
+            // Ryd testens database op bagefter.
             File.Delete(databasePath);
         }
     }
 
-    private static WebApplicationFactory<Program> CreateFactory(string databasePath)
+    [Fact]
+    public async Task Admin_CanEndWorkSchedule_AndCreateNextPlan()
     {
+        const string email = "schedule-admin@example.test";
+        const string password = "ScheduleTestPassword123!";
+        // Hver test får sin egen database, så testene ikke påvirker hinanden.
+        var databasePath = Path.Combine(Path.GetTempPath(), $"{Guid.NewGuid():N}.db");
+
+        try
+        {
+            using var factory = CreateFactory(databasePath);
+            using var client = CreateClient(factory);
+            Guid employmentId;
+            Guid scheduleId;
+            WorkScheduleDay[] days;
+
+            using (var scope = factory.Services.CreateScope())
+            {
+                var users = scope.ServiceProvider.GetRequiredService<UserService>();
+                users.Create(email, password, "Admin");
+                var employee = users.Create("schedule-employee@example.test", password, "Employee");
+                var employments = scope.ServiceProvider.GetRequiredService<EmploymentService>();
+                var employment = employments.Create(
+                    employee.Id, EmploymentType.FullTime, new DateOnly(2026, 12, 1), null);
+                Assert.NotNull(employment);
+                employmentId = employment.Id;
+
+                var schedules = scope.ServiceProvider.GetRequiredService<WorkScheduleService>();
+                var plan = Assert.Single(schedules.GetByEmploymentId(employmentId));
+                scheduleId = plan.Id;
+                days = schedules.GetDays(scheduleId);
+            }
+
+            using var login = await client.PostAsJsonAsync("/api/auth/login", new { email, password });
+            Assert.Equal(HttpStatusCode.OK, login.StatusCode);
+            var path = $"/api/employments/{employmentId}/work-schedules";
+            var endPath = $"{path}/{scheduleId}/end";
+
+            using var invalid = await client.PatchAsJsonAsync(endPath, new { endDate = "2026-11-30" });
+            Assert.Equal(HttpStatusCode.BadRequest, invalid.StatusCode);
+
+            using var ended = await client.PatchAsJsonAsync(endPath, new { endDate = "2026-12-31" });
+            Assert.Equal(HttpStatusCode.NoContent, ended.StatusCode);
+            using var repeated = await client.PatchAsJsonAsync(endPath, new { endDate = "2026-12-31" });
+            Assert.Equal(HttpStatusCode.Conflict, repeated.StatusCode);
+
+            using var created = await client.PostAsJsonAsync(
+                path, new { startDate = "2027-01-01", days });
+            Assert.Equal(HttpStatusCode.Created, created.StatusCode);
+
+            var history = await client.GetFromJsonAsync<WorkSchedule[]>(path);
+            Assert.NotNull(history);
+            Assert.Equal(2, history.Length);
+            Assert.Equal(new DateOnly(2026, 12, 31), history[1].EndDate);
+
+            var decemberPlan = await client.GetFromJsonAsync<WorkSchedule>(
+                $"{path}/for-date?date=2026-12-31");
+            Assert.NotNull(decemberPlan);
+            Assert.Equal(scheduleId, decemberPlan.Id);
+
+            var januaryPlan = await client.GetFromJsonAsync<WorkSchedule>(
+                $"{path}/for-date?date=2027-01-01");
+            Assert.NotNull(januaryPlan);
+            Assert.Equal(history[0].Id, januaryPlan.Id);
+
+            using var noPlan = await client.GetAsync($"{path}/for-date?date=2026-11-30");
+            Assert.Equal(HttpStatusCode.NotFound, noPlan.StatusCode);
+            using var noDate = await client.GetAsync($"{path}/for-date");
+            Assert.Equal(HttpStatusCode.BadRequest, noDate.StatusCode);
+
+            var oldDays = await client.GetFromJsonAsync<WorkScheduleDay[]>($"{path}/{scheduleId}/days");
+            Assert.NotNull(oldDays);
+            Assert.Equal(5, oldDays.Length);
+        }
+        finally
+        {
+            // Ryd testens database op bagefter.
+            File.Delete(databasePath);
+        }
+    }
+
+    internal static WebApplicationFactory<Program> CreateFactory(string databasePath)
+    {
+        // Start API'et i testen, og brug testens egen SQLite-fil.
         return new WebApplicationFactory<Program>().WithWebHostBuilder(builder =>
         {
             builder.UseEnvironment("Development");
@@ -250,8 +373,9 @@ public class LoginTests
         });
     }
 
-    private static HttpClient CreateClient(WebApplicationFactory<Program> factory)
+    internal static HttpClient CreateClient(WebApplicationFactory<Program> factory)
     {
+        // Denne klient sender HTTP-kald og husker login-cookien.
         return factory.CreateClient(new WebApplicationFactoryClientOptions
         {
             BaseAddress = new Uri("https://localhost"),
