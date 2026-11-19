@@ -1,16 +1,16 @@
 import { useState } from "react";
 import { Calendar } from "../../components/calendar";
+import { RequestCard } from "../../components/requestCard";
 import { testEvents } from "../../mockdata/testEvents";
+import type { HolidayRequest, HolidayType } from "../../types/holidayRequest";
+import { formatDate, holidayTypeName } from "../../utils/format";
 
-type HolidayType = "weeks1to5" | "week6";
-
-type SentRequest = {
-    holidayType: HolidayType;
-    start: Date;
-    end: Date;
+type Props = {
+    requests: HolidayRequest[];
+    onAdd: (request: HolidayRequest) => void;
+    onCancel: (id: number) => void;
 };
 
-// Date -> "YYYY-MM-DD" (the format <input type="date"> uses)
 function toInputValue(date: Date | null) {
     if (!date) return "";
     const month = String(date.getMonth() + 1).padStart(2, "0");
@@ -18,36 +18,25 @@ function toInputValue(date: Date | null) {
     return date.getFullYear() + "-" + month + "-" + day;
 }
 
-// Date -> "23.11.2026" (Danish format, for showing dates to the user)
-function formatDate(date: Date | null) {
-    return date ? date.toLocaleDateString("da-DK") : "-";
-}
-
-// "YYYY-MM-DD" -> Date (local time, midnight)
 function fromInputValue(value: string) {
     return value ? new Date(value + "T00:00") : null;
 }
 
-function holidayTypeName(holidayType: HolidayType) {
-    return holidayType === "week6" ? "Week 6" : "Week 1–5";
-}
-
-export function RequestPage() {
+export function RequestPage({ requests, onAdd, onCancel }: Props) {
     const [start, setStart] = useState<Date | null>(null);
     const [end, setEnd] = useState<Date | null>(null);
     const [holidayType, setHolidayType] = useState<HolidayType>("weeks1to5");
-    const [sentRequests, setSentRequests] = useState<SentRequest[]>([]);
+    
+    const pendingRequests = requests.filter(r => r.status === "pending");
+    const bookedRequests = requests.filter(r => r.status === "pending" || r.status === "approved");
 
     function handleSelect(day: Date) {
         if (!start || end) {
-            // First click, or starting a new selection
             setStart(day);
             setEnd(null);
         } else if (day < start) {
-            // Clicked before the start date: move the start
             setStart(day);
         } else {
-            // Second click: set the end date
             setEnd(day);
         }
     }
@@ -55,25 +44,27 @@ export function RequestPage() {
     function handleStartInput(value: string) {
         const date = fromInputValue(value);
         setStart(date);
-        if (date && end && end < date) setEnd(null); // end can't be before start
+        if (date && end && end < date) setEnd(null);
     }
 
     function handleConfirm() {
         if (!start || !end) return;
 
-        const request = { holidayType: holidayType, start: start, end: end };
+        const request: HolidayRequest = {
+            id: Date.now(), //TUDO temporary id – the database will make the real one
+            holidayType: holidayType,
+            start: start,
+            end: end,
+            createdAt: new Date(),
+            status: "pending",
+        };
 
         // TODO: send to the backend when the endpoint exists
         console.log("Holiday request:", request);
 
-        setSentRequests([...sentRequests, request]);
+        onAdd(request);
         setStart(null);
         setEnd(null);
-    }
-
-    function handleCancel(index: number) {
-        // TODO: tell the backend the request is cancelled
-        setSentRequests(sentRequests.filter((_, i) => i !== index));
     }
 
     return (
@@ -105,7 +96,7 @@ export function RequestPage() {
                         end={end}
                         onSelect={handleSelect}
                         events={testEvents}
-                        requested={sentRequests}
+                        requested={bookedRequests}
                     />
 
                     <div className="mt-6 flex gap-6">
@@ -132,22 +123,10 @@ export function RequestPage() {
                     </div>
                 </div>
 
-                {/* Right: sent requests and the new request */}
+                {/* Request Card */}
                 <div className="ml-12 pl-12 border-l-2 border-line space-y-4">
-                    {sentRequests.map((request, index) => (
-                        <div key={index} className="bg-line text-slate border border-line rounded p-6 border-b-4 border-b-slate">
-                            <h2 className="text-xl mb-2">{holidayTypeName(request.holidayType)}</h2>
-                            <p><strong>From:</strong> {formatDate(request.start)}</p>
-                            <p><strong>To:</strong> {formatDate(request.end)}</p>
-                            <p className="mt-2 font-semibold">Pending</p>
-
-                            <button
-                                onClick={() => handleCancel(index)}
-                                className="mt-4 w-full border-2 border-red-600 text-red-600 font-semibold py-2 rounded bg-white hover:bg-red-50"
-                            >
-                                Cancel request
-                            </button>
-                        </div>
+                    {pendingRequests.map(request => (
+                        <RequestCard key={request.id} request={request} onCancel={onCancel} />
                     ))}
 
                     <div className="bg-white border border-line rounded p-6 border-b-4 border-b-orange">
