@@ -52,6 +52,69 @@ public class LoginTests
     }
 
     [Fact]
+    public async Task Login_WithWrongPassword_ReturnsUnauthorized()
+    {
+        const string email = "wrong-password@example.test";
+        var databasePath = Path.Combine(Path.GetTempPath(), $"{Guid.NewGuid():N}.db");
+
+        try
+        {
+            using var factory = CreateFactory(databasePath);
+            using var client = CreateClient(factory);
+
+            using (var scope = factory.Services.CreateScope())
+            {
+                var users = scope.ServiceProvider.GetRequiredService<UserService>();
+                users.Create(email, "LocalTestPassword123!", "Employee");
+            }
+
+            using var login = await client.PostAsJsonAsync(
+                "/api/auth/login", new { email, password = "WrongPassword123!" });
+            Assert.Equal(HttpStatusCode.Unauthorized, login.StatusCode);
+
+            using var profile = await client.GetAsync("/api/auth/me");
+            Assert.Equal(HttpStatusCode.Unauthorized, profile.StatusCode);
+        }
+        finally
+        {
+            File.Delete(databasePath);
+        }
+    }
+
+    [Fact]
+    public async Task Logout_EndsTheSession()
+    {
+        const string email = "logout@example.test";
+        const string password = "LocalTestPassword123!";
+        var databasePath = Path.Combine(Path.GetTempPath(), $"{Guid.NewGuid():N}.db");
+
+        try
+        {
+            using var factory = CreateFactory(databasePath);
+            using var client = CreateClient(factory);
+
+            using (var scope = factory.Services.CreateScope())
+            {
+                var users = scope.ServiceProvider.GetRequiredService<UserService>();
+                users.Create(email, password, "Accounting");
+            }
+
+            using var login = await client.PostAsJsonAsync("/api/auth/login", new { email, password });
+            Assert.Equal(HttpStatusCode.OK, login.StatusCode);
+
+            using var logout = await client.PostAsync("/api/auth/logout", null);
+            Assert.Equal(HttpStatusCode.NoContent, logout.StatusCode);
+
+            using var profile = await client.GetAsync("/api/auth/me");
+            Assert.Equal(HttpStatusCode.Unauthorized, profile.StatusCode);
+        }
+        finally
+        {
+            File.Delete(databasePath);
+        }
+    }
+
+    [Fact]
     public async Task Admin_CanManageUsers_AndDeletedUserLosesAccess()
     {
         const string adminEmail = "admin-crud@example.test";
