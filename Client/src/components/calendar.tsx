@@ -20,21 +20,18 @@ const eventColors = {
 export function Calendar({ start, end, onSelect, events = [], requested = [] }: Props) {
     const today = new Date();
     const [month, setMonth] = useState(new Date(today.getFullYear(), today.getMonth(), 1));
-
-    // Jump to the start date's month (e.g. when it is typed in the text field)
+    
     useEffect(() => {
         if (start) setMonth(new Date(start.getFullYear(), start.getMonth(), 1));
     }, [start]);
 
     const year = month.getFullYear();
     const monthIndex = month.getMonth();
-    const daysInMonth = new Date(year, monthIndex + 1, 0).getDate(); // day 0 of next month = last day of this month
-
-    // How many empty squares before the 1st (Monday = 0, Sunday = 6)
+    const daysInMonth = new Date(year, monthIndex + 1, 0).getDate();
+    
     let emptyCells = month.getDay() - 1;
     if (emptyCells === -1) emptyCells = 6;
-
-    // One entry per square: null for empty squares, then one Date per day
+    
     const days: (Date | null)[] = [];
     for (let i = 0; i < emptyCells; i++) {
         days.push(null);
@@ -69,11 +66,11 @@ export function Calendar({ start, end, onSelect, events = [], requested = [] }: 
     return (
         <div className="w-full">
             <div className="flex items-center justify-between mb-4">
-                <button onClick={() => changeMonth(-1)} className="px-3 py-1 hover:text-orange">←</button>
+                <button onClick={() => changeMonth(-1)} className="text-3xl px-4 py-1 rounded hover:bg-orange/10 hover:text-orange">←</button>
                 <h2 className="text-2xl">
                     {month.toLocaleDateString("en-GB", { month: "long", year: "numeric" })}
                 </h2>
-                <button onClick={() => changeMonth(1)} className="px-3 py-1 hover:text-orange">→</button>
+                <button onClick={() => changeMonth(1)} className="text-3xl px-4 py-1 rounded hover:bg-orange/10 hover:text-orange">→</button>
             </div>
 
             <div className="grid grid-cols-7 gap-1">
