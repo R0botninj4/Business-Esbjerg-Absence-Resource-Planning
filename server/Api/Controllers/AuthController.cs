@@ -13,7 +13,9 @@ namespace Api.Controllers;
 public class AuthController(UserService userService) : ControllerBase
 {
     [HttpPost("login")]
-    public async Task<IActionResult> Login(LoginRequest request)
+    [ProducesResponseType<UserInfo>(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    public async Task<ActionResult<UserInfo>> Login(LoginRequest request)
     {
         var user = userService.VerifyLogin(request.Email, request.Password);
 
@@ -33,19 +35,30 @@ public class AuthController(UserService userService) : ControllerBase
         var principal = new ClaimsPrincipal(new ClaimsIdentity(claims, scheme));
         await HttpContext.SignInAsync(scheme, principal);
 
-        return Ok(new { user.Id, user.Email, user.Role });
+        return Ok(new UserInfo(user.Id, user.Email, user.Role));
     }
+
+    [HttpPost("logout")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    public async Task<IActionResult> Logout()
+    {
+        await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
+        return NoContent();
+    }
+
     [Authorize]
     [HttpGet("me")]
-    public IActionResult Me()
+    [ProducesResponseType<UserInfo>(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    public ActionResult<UserInfo> Me()
     {
-        return Ok(new
-        {
-            Id = User.FindFirstValue(ClaimTypes.NameIdentifier),
-            Email = User.FindFirstValue(ClaimTypes.Email),
-            Role = User.FindFirstValue(ClaimTypes.Role)
-        });
+        return Ok(new UserInfo(
+            Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!),
+            User.FindFirstValue(ClaimTypes.Email)!,
+            User.FindFirstValue(ClaimTypes.Role)!));
     }
+
+    public record UserInfo(Guid Id, string Email, string Role);
     public record LoginRequest(
         [Required, EmailAddress] string Email,
         [Required] string Password);

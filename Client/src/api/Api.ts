@@ -10,10 +10,37 @@
  * ---------------------------------------------------------------
  */
 
+export interface CreateEmploymentRequest {
+  type: EmploymentType;
+  /** @format date */
+  startDate: string;
+  /** @format date */
+  endDate: null | string;
+}
+
 export interface CreateUserRequest {
   email: string;
   password: string;
   role: string;
+}
+
+export interface Employment {
+  /** @format uuid */
+  id?: string;
+  /** @format uuid */
+  userId?: string;
+  type?: EmploymentType;
+  /** @format date */
+  startDate?: string;
+  /** @format date */
+  endDate?: null | string;
+}
+
+export type EmploymentType = number;
+
+export interface EndEmploymentRequest {
+  /** @format date */
+  endDate: string;
 }
 
 export interface LoginRequest {
@@ -21,7 +48,26 @@ export interface LoginRequest {
   password: string;
 }
 
+export interface ProblemDetails {
+  type?: null | string;
+  title?: null | string;
+  /**
+   * @format int32
+   * @pattern ^-?(?:0|[1-9]\d*)$
+   */
+  status?: null | number | string;
+  detail?: null | string;
+  instance?: null | string;
+}
+
 export interface UpdateUserRequest {
+  email: string;
+  role: string;
+}
+
+export interface UserInfo {
+  /** @format uuid */
+  id: string;
   email: string;
   role: string;
 }
@@ -322,11 +368,26 @@ export class Api<
      * @request POST:/api/auth/login
      */
     authLoginCreate: (data: LoginRequest, params: RequestParams = {}) =>
-      this.request<void, any>({
+      this.request<UserInfo, ProblemDetails>({
         path: `/api/auth/login`,
         method: "POST",
         body: data,
         type: ContentType.Json,
+        format: "json",
+        ...params,
+      }),
+
+    /**
+     * No description
+     *
+     * @tags Auth
+     * @name AuthLogoutCreate
+     * @request POST:/api/auth/logout
+     */
+    authLogoutCreate: (params: RequestParams = {}) =>
+      this.request<void, any>({
+        path: `/api/auth/logout`,
+        method: "POST",
         ...params,
       }),
 
@@ -338,9 +399,67 @@ export class Api<
      * @request GET:/api/auth/me
      */
     authMeList: (params: RequestParams = {}) =>
-      this.request<void, any>({
+      this.request<UserInfo, ProblemDetails>({
         path: `/api/auth/me`,
         method: "GET",
+        format: "json",
+        ...params,
+      }),
+
+    /**
+     * No description
+     *
+     * @tags Employments
+     * @name UsersEmploymentsList
+     * @request GET:/api/users/{userId}/employments
+     */
+    usersEmploymentsList: (userId: string, params: RequestParams = {}) =>
+      this.request<Employment[], any>({
+        path: `/api/users/${userId}/employments`,
+        method: "GET",
+        format: "json",
+        ...params,
+      }),
+
+    /**
+     * No description
+     *
+     * @tags Employments
+     * @name UsersEmploymentsCreate
+     * @request POST:/api/users/{userId}/employments
+     */
+    usersEmploymentsCreate: (
+      userId: string,
+      data: CreateEmploymentRequest,
+      params: RequestParams = {},
+    ) =>
+      this.request<Employment, ProblemDetails>({
+        path: `/api/users/${userId}/employments`,
+        method: "POST",
+        body: data,
+        type: ContentType.Json,
+        format: "json",
+        ...params,
+      }),
+
+    /**
+     * No description
+     *
+     * @tags Employments
+     * @name UsersEmploymentsEndPartialUpdate
+     * @request PATCH:/api/users/{userId}/employments/{employmentId}/end
+     */
+    usersEmploymentsEndPartialUpdate: (
+      userId: string,
+      employmentId: string,
+      data: EndEmploymentRequest,
+      params: RequestParams = {},
+    ) =>
+      this.request<void, ProblemDetails>({
+        path: `/api/users/${userId}/employments/${employmentId}/end`,
+        method: "PATCH",
+        body: data,
+        type: ContentType.Json,
         ...params,
       }),
 

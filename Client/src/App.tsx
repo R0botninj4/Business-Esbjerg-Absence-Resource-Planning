@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router";
 import { Layout, type NavItem } from "./components/layout";
+import { AuthProvider, HomeRedirect, RequireRole } from "./components/auth";
 import { LoginPage } from "./pages/login/LoginPage";
 import { UserMain } from "./pages/user/UserMain";
 import { RequestPage } from "./pages/user/RequestPage";
@@ -50,9 +51,10 @@ export function App() {
 
     return (
         <BrowserRouter>
-            <Routes>
-                <Route path="/" element={<Navigate to="/user" replace />} />
-                <Route path="/login" element={<LoginPage />} />
+            <AuthProvider>
+                <Routes>
+                    <Route path="/" element={<HomeRedirect />} />
+                    <Route path="/login" element={<LoginPage />} />
 
                 <Route path="/user" element={<Layout links={userLinks} />}>
                     <Route index element={<UserMain />} />
@@ -60,18 +62,19 @@ export function App() {
                     <Route path="requests" element={<UserRequests requests={requests} onCancel={cancelRequest} />} />
                 </Route>
 
-                <Route path="/admin" element={<Layout links={adminLinks} />}>
-                    <Route index element={<AdminMain />} />
-                    <Route path="calendar" element={<AdminCalendar />} />
-                    <Route path="users" element={<Users />} />
-                </Route>
+                    <Route path="/admin" element={<RequireRole role="Admin"><Layout links={adminLinks} /></RequireRole>}>
+                        <Route index element={<AdminMain />} />
+                        <Route path="calendar" element={<AdminCalendar />} />
+                        <Route path="users" element={<Users />} />
+                    </Route>
 
-                <Route path="/accounting" element={<Layout links={accountingLinks} />}>
-                    <Route index element={<AccountingMain />} />
-                    <Route path="employees" element={<EmployeeList />} />
-                    <Route path="employeesInfo" element={<EmployeeInfo />} />
-                </Route>
-            </Routes>
+                    <Route path="/accounting" element={<RequireRole role="Accounting"><Layout links={accountingLinks} /></RequireRole>}>
+                        <Route index element={<AccountingMain />} />
+                        <Route path="employees" element={<EmployeeList />} />
+                        <Route path="employeesInfo" element={<EmployeeInfo />} />
+                    </Route>
+                </Routes>
+            </AuthProvider>
         </BrowserRouter>
     );
 }

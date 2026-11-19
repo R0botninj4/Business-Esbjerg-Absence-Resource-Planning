@@ -1,4 +1,5 @@
-﻿import { NavLink, Outlet } from "react-router";
+﻿import { NavLink, Outlet, useNavigate } from "react-router";
+import { useAuth } from "./auth";
 import logo from "../assets/logo.svg";
 
 export type NavItem = {
@@ -11,6 +12,14 @@ type Props = {
 };
 
 export function Layout({ links }: Props) {
+    const navigate = useNavigate();
+    const { user, logout } = useAuth();
+
+    async function handleLogout() {
+        await logout();
+        navigate("/login");
+    }
+
     return (
         <div>
             <nav className="flex items-end gap-8 px-8 pt-6 border-b-4 border-navy">
@@ -28,6 +37,11 @@ export function Layout({ links }: Props) {
                         {link.label}
                     </NavLink>
                 ))}
+
+                <span className="ml-auto pb-2 text-slate">{user?.email}</span>
+                <button onClick={handleLogout} className="pb-2 font-semibold hover:text-orange">
+                    Log out
+                </button>
             </nav>
 
             <main className="p-8">
