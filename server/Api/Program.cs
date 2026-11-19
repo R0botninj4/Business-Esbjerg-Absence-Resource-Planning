@@ -8,14 +8,11 @@ using System.Security.Claims;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
 builder.Services.AddScoped<IPasswordHasher<User>, PasswordHasher<User>>();
 builder.Services.AddScoped<UserService>();
 builder.Services.AddControllers();
 builder.Services.AddScoped<UserService>();
 builder.Services.AddScoped<EmploymentService>();
-builder.Services.AddScoped<WorkScheduleService>();
-// Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
 if (builder.Environment.IsDevelopment())
 {
@@ -51,7 +48,6 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
 builder.Services.AddAuthorization();
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();
@@ -86,6 +82,7 @@ if (app.Environment.IsDevelopment())
     }
 
     SeedUser("Employee");
+    SeedUser("Accounting");
     SeedUser("Admin");
 
     void SeedUser(string role)
