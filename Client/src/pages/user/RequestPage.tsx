@@ -4,6 +4,7 @@ import { RequestCard } from "../../components/requestCard";
 import { testEvents } from "../../mockdata/testEvents";
 import type { HolidayRequest, HolidayType } from "../../types/holidayRequest";
 import { formatDate, holidayTypeName } from "../../utils/format";
+import { testCurrentEmployee } from "../../mockdata/testRequest";
 
 type Props = {
     requests: HolidayRequest[];
@@ -52,6 +53,7 @@ export function RequestPage({ requests, onAdd, onCancel }: Props) {
 
         const request: HolidayRequest = {
             id: Date.now(), //TUDO temporary id – the database will make the real one
+            employeeName: testCurrentEmployee, // TODO: the logged-in user from the backend
             holidayType: holidayType,
             start: start,
             end: end,
