@@ -31,6 +31,10 @@ public class UsersController(UserService users) : ControllerBase
             var user = users.Create(request.Email, request.Password, request.Role);
             return CreatedAtAction(nameof(Get), new { user.Id }, UserResponse.From(user));
         }
+        catch (AccountRoleConflictException exception)
+        {
+            return Conflict(new { message = exception.Message });
+        }
         catch (SqliteException exception) when (exception.SqliteExtendedErrorCode == 2067)
         {
             return Conflict(new { message = "E-mailadressen er allerede i brug." });
@@ -49,6 +53,10 @@ public class UsersController(UserService users) : ControllerBase
         {
             return users.Update(id, request.Email, request.Role) ? NoContent() : NotFound();
         }
+        catch (AccountRoleConflictException exception)
+        {
+            return Conflict(new { message = exception.Message });
+        }
         catch (SqliteException exception) when (exception.SqliteExtendedErrorCode == 2067)
         {
             return Conflict(new { message = "E-mailadressen er allerede i brug." });
@@ -63,7 +71,14 @@ public class UsersController(UserService users) : ControllerBase
             return Conflict(new { message = "Du kan ikke slette din egen konto." });
         }
 
-        return users.Delete(id) ? NoContent() : NotFound();
+        try
+        {
+            return users.Delete(id) ? NoContent() : NotFound();
+        }
+        catch (AccountRoleConflictException exception)
+        {
+            return Conflict(new { message = exception.Message });
+        }
     }
 
     private bool IsOwnAccount(Guid id) =>
