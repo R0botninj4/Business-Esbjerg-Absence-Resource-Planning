@@ -57,7 +57,7 @@ export function App() {
                     <Route path="/login" element={<LoginPage />} />
 
                 <Route path="/user" element={<Layout links={userLinks} />}>
-                    <Route index element={<UserMain />} />
+                    <Route index element={<UserMain requests={requests} onCancel={cancelRequest} />} />
                     <Route path="request" element={<RequestPage requests={requests} onAdd={addRequest} onCancel={removeRequest} />} />
                     <Route path="requests" element={<UserRequests requests={requests} onCancel={cancelRequest} />} />
                 </Route>
