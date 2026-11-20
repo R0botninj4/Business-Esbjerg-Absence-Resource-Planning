@@ -14,6 +14,8 @@ dotnet run --project .\server\Api\Api.csproj
 
 Kun rollen `Admin` kan liste, oprette, redigere og slette konti. Brugerne kan have rollerne `Admin`, `Employee` og `Accounting`. Ved oprettelse kræves en adgangskode på mindst 12 tegn. Redigering ændrer e-mail og rolle. En admin kan hverken slette sin egen konto eller fjerne sin egen adminrolle. Brugersvar indeholder ID, e-mail og rolle.
 
+Medarbejderkonti med rollen `Employee` skal have en gyldig e-mail på `@businessesbjerg.com`. Det kontrolleres ved oprettelse, ændring af e-mail og ændring af rolle til Employee. Store og små bogstaver accepteres, og e-mailen gemmes med små bogstaver. Admin- og regnskabskonti kan bruge andre domæner. Eksisterende medarbejderkonti fra før reglen skal have deres adresse rettet ved næste opdatering.
+
 Adminoprettelse via miljøvariabler kører i Development. Brug en e-mail, der er ledig i den lokale database. Efter første opstart kan du fjerne de to miljøvariabler med `Remove-Item Env:SeedAdminEmail, Env:SeedAdminPassword`. Kontoen er gemt i SQLite.
 
 ## Ugeplaner
