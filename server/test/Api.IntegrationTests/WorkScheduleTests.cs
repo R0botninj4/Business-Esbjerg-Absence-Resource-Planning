@@ -25,12 +25,12 @@ public class WorkScheduleTests
             using (var scope = factory.Services.CreateScope())
             {
                 var users = scope.ServiceProvider.GetRequiredService<UserService>();
-                users.Create("admin@example.test", Password, "Admin");
-                employeeId = users.Create("parttime@example.test", Password, "Employee").Id;
+                users.Create("admin@businessesbjerg.com", Password, "Admin");
+                employeeId = users.Create("parttime@businessesbjerg.com", Password, "Employee").Id;
             }
 
             using var login = await client.PostAsJsonAsync(
-                "/api/auth/login", new { email = "admin@example.test", password = Password });
+                "/api/auth/login", new { email = "admin@businessesbjerg.com", password = Password });
             Assert.Equal(HttpStatusCode.OK, login.StatusCode);
             var path = $"/api/users/{employeeId}/employments";
 
@@ -79,8 +79,8 @@ public class WorkScheduleTests
             using (var scope = factory.Services.CreateScope())
             {
                 var users = scope.ServiceProvider.GetRequiredService<UserService>();
-                var owner = users.Create("owner@example.test", Password, "Employee");
-                users.Create("reader@example.test", Password, "Employee");
+                var owner = users.Create("owner@businessesbjerg.com", Password, "Employee");
+                users.Create("reader@businessesbjerg.com", Password, "Employee");
                 ownerId = owner.Id;
                 var employments = scope.ServiceProvider.GetRequiredService<EmploymentService>();
                 var employment = employments.Create(owner.Id, EmploymentType.FullTime, new DateOnly(2026, 12, 1), null);
@@ -91,7 +91,7 @@ public class WorkScheduleTests
                 planId = plans[0].Id;
             }
 
-            var email = "owner@example.test";
+            var email = "owner@businessesbjerg.com";
             using var login = await client.PostAsJsonAsync("/api/auth/login", new { email, password = Password });
             Assert.Equal(HttpStatusCode.OK, login.StatusCode);
             var path = $"/api/employments/{employmentId}/work-schedules";
@@ -138,8 +138,8 @@ public class WorkScheduleTests
             using (var scope = factory.Services.CreateScope())
             {
                 var users = scope.ServiceProvider.GetRequiredService<UserService>();
-                var owner = users.Create("owner@example.test", Password, "Employee");
-                users.Create("reader@example.test", Password, "Employee");
+                var owner = users.Create("owner@businessesbjerg.com", Password, "Employee");
+                users.Create("reader@businessesbjerg.com", Password, "Employee");
                 ownerId = owner.Id;
                 var employments = scope.ServiceProvider.GetRequiredService<EmploymentService>();
                 var employment = employments.Create(owner.Id, EmploymentType.FullTime, new DateOnly(2026, 12, 1), null);
@@ -150,7 +150,7 @@ public class WorkScheduleTests
                 planId = plans[0].Id;
             }
 
-            var email = "reader@example.test";
+            var email = "reader@businessesbjerg.com";
             using var login = await client.PostAsJsonAsync("/api/auth/login", new { email, password = Password });
             Assert.Equal(HttpStatusCode.OK, login.StatusCode);
             var path = $"/api/employments/{employmentId}/work-schedules";
@@ -197,8 +197,8 @@ public class WorkScheduleTests
             using (var scope = factory.Services.CreateScope())
             {
                 var users = scope.ServiceProvider.GetRequiredService<UserService>();
-                var owner = users.Create("owner@example.test", Password, "Employee");
-                users.Create("reader@example.test", Password, "Accounting");
+                var owner = users.Create("owner@businessesbjerg.com", Password, "Employee");
+                users.Create("reader@businessesbjerg.com", Password, "Accounting");
                 ownerId = owner.Id;
                 var employments = scope.ServiceProvider.GetRequiredService<EmploymentService>();
                 var employment = employments.Create(owner.Id, EmploymentType.FullTime, new DateOnly(2026, 12, 1), null);
@@ -209,7 +209,7 @@ public class WorkScheduleTests
                 planId = plans[0].Id;
             }
 
-            var email = "reader@example.test";
+            var email = "reader@businessesbjerg.com";
             using var login = await client.PostAsJsonAsync("/api/auth/login", new { email, password = Password });
             Assert.Equal(HttpStatusCode.OK, login.StatusCode);
             var path = $"/api/employments/{employmentId}/work-schedules";
@@ -246,8 +246,8 @@ public class WorkScheduleTests
             using (var scope = factory.Services.CreateScope())
             {
                 var users = scope.ServiceProvider.GetRequiredService<UserService>();
-                users.Create("editor@example.test", Password, "Admin");
-                var employee = users.Create("employee@example.test", Password, "Employee");
+                users.Create("editor@businessesbjerg.com", Password, "Admin");
+                var employee = users.Create("employee@businessesbjerg.com", Password, "Employee");
                 employeeId = employee.Id;
                 var employments = scope.ServiceProvider.GetRequiredService<EmploymentService>();
                 var employment = employments.Create(employeeId, EmploymentType.PartTime, new DateOnly(2026, 12, 1), null, CreateDays());
@@ -259,7 +259,7 @@ public class WorkScheduleTests
             }
 
             using var login = await client.PostAsJsonAsync("/api/auth/login",
-                new { email = "editor@example.test", password = Password });
+                new { email = "editor@businessesbjerg.com", password = Password });
             Assert.Equal(HttpStatusCode.OK, login.StatusCode);
             var path = $"/api/employments/{employmentId}/work-schedules";
             var change = new { startDate = "2027-01-01", days = CreateDays() };
@@ -324,8 +324,8 @@ public class WorkScheduleTests
             using (var scope = factory.Services.CreateScope())
             {
                 var users = scope.ServiceProvider.GetRequiredService<UserService>();
-                users.Create("editor@example.test", Password, "Accounting");
-                var employee = users.Create("employee@example.test", Password, "Employee");
+                users.Create("editor@businessesbjerg.com", Password, "Accounting");
+                var employee = users.Create("employee@businessesbjerg.com", Password, "Employee");
                 employeeId = employee.Id;
                 var employments = scope.ServiceProvider.GetRequiredService<EmploymentService>();
                 var employment = employments.Create(employeeId, EmploymentType.PartTime, new DateOnly(2026, 12, 1), null, CreateDays());
@@ -337,7 +337,7 @@ public class WorkScheduleTests
             }
 
             using var login = await client.PostAsJsonAsync("/api/auth/login",
-                new { email = "editor@example.test", password = Password });
+                new { email = "editor@businessesbjerg.com", password = Password });
             Assert.Equal(HttpStatusCode.OK, login.StatusCode);
             var path = $"/api/employments/{employmentId}/work-schedules";
             var change = new { startDate = "2027-01-01", days = CreateDays() };
@@ -397,7 +397,7 @@ public class WorkScheduleTests
             using var factory = LoginTests.CreateFactory(databasePath);
             using var scope = factory.Services.CreateScope();
             var employee = scope.ServiceProvider.GetRequiredService<UserService>()
-                .Create("changing@example.test", Password, "Employee");
+                .Create("changing@businessesbjerg.com", Password, "Employee");
             var employments = scope.ServiceProvider.GetRequiredService<EmploymentService>();
             var schedules = scope.ServiceProvider.GetRequiredService<WorkScheduleService>();
 
@@ -435,7 +435,7 @@ public class WorkScheduleTests
             using var factory = LoginTests.CreateFactory(databasePath);
             using var scope = factory.Services.CreateScope();
             var employee = scope.ServiceProvider.GetRequiredService<UserService>()
-                .Create("rollback@example.test", Password, "Employee");
+                .Create("rollback@businessesbjerg.com", Password, "Employee");
             var configuration = scope.ServiceProvider.GetRequiredService<IConfiguration>();
             configuration["FullTimeWorkSchedule:0:EndTime"] = "07:00:00";
             var employments = scope.ServiceProvider.GetRequiredService<EmploymentService>();

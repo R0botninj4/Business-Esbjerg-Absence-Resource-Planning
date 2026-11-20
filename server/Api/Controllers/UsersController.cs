@@ -31,6 +31,10 @@ public class UsersController(UserService users) : ControllerBase
             var user = users.Create(request.Email, request.Password, request.Role);
             return CreatedAtAction(nameof(Get), new { user.Id }, UserResponse.From(user));
         }
+        catch (ArgumentException exception) when (exception.ParamName == "email")
+        {
+            return BadRequest(new { message = exception.Message });
+        }
         catch (SqliteException exception) when (exception.SqliteExtendedErrorCode == 2067)
         {
             return Conflict(new { message = "E-mailadressen er allerede i brug." });
@@ -48,6 +52,10 @@ public class UsersController(UserService users) : ControllerBase
         try
         {
             return users.Update(id, request.Email, request.Role) ? NoContent() : NotFound();
+        }
+        catch (ArgumentException exception) when (exception.ParamName == "email")
+        {
+            return BadRequest(new { message = exception.Message });
         }
         catch (SqliteException exception) when (exception.SqliteExtendedErrorCode == 2067)
         {
