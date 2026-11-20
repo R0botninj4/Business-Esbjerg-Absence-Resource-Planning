@@ -64,6 +64,20 @@ public class EmploymentService
         Guid userId, EmploymentType type, DateOnly startDate, DateOnly? endDate,
         WorkScheduleDayRequest[]? days = null)
     {
+        using var transaction = db.BeginTransaction();
+
+        var employment = CreateInTransaction(
+            userId, type, startDate, endDate, days);
+
+        transaction.Commit();
+
+        return employment;
+    }
+
+    internal Employment? CreateInTransaction(
+        Guid userId, EmploymentType type, DateOnly startDate, DateOnly? endDate,
+        WorkScheduleDayRequest[]? days = null)
+    {
         ValidateDates(startDate, endDate);
         if (!Enum.IsDefined(type))
         {
@@ -88,7 +102,6 @@ public class EmploymentService
             return null;
         }
 
-        using var transaction = db.BeginTransaction();
         var newEndDate = DateOnly.MaxValue;
         if (endDate.HasValue)
         {
@@ -126,7 +139,6 @@ public class EmploymentService
             workSchedules.CreateFullTime(employment);
         }
 
-        transaction.Commit();
         return employment;
     }
 

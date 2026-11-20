@@ -14,6 +14,7 @@ builder.Services.AddControllers();
 builder.Services.AddScoped<UserService>();
 builder.Services.AddScoped<EmploymentService>();
 builder.Services.AddScoped<WorkScheduleService>();
+builder.Services.AddScoped<EmployeeService>();
 builder.Services.AddOpenApi();
 if (builder.Environment.IsDevelopment())
 {
