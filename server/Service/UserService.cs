@@ -1,5 +1,6 @@
 ﻿using Infra;
 using Microsoft.AspNetCore.Identity;
+using System.ComponentModel.DataAnnotations;
 using LinqToDB;
 
 namespace Service;
@@ -12,20 +13,7 @@ public class UserService(MyDatabaseConnection db, IPasswordHasher<User> password
 
     public User Create(string email, string password, string role)
     {
-        if (!IsRoleAccount(role))
-        {
-            return SaveUser(email, password, role);
-        }
-
-        using var transaction = db.BeginTransaction();
-        CheckAvailableRole(role, Guid.Empty);
-        var user = SaveUser(email, password, role);
-        transaction.Commit();
-        return user;
-    }
-
-    private User SaveUser(string email, string password, string role)
-    {
+        ValidateEmail(email, role);
         var user = new User { Id = Guid.NewGuid(), Email = NormalizeEmail(email), Role = role };
         user.PasswordHash = passwordHasher.HashPassword(user, password);
         db.Insert(user);
@@ -34,25 +22,16 @@ public class UserService(MyDatabaseConnection db, IPasswordHasher<User> password
 
     public bool Update(Guid id, string email, string role)
     {
-        using var transaction = db.BeginTransaction();
-        var user = Find(id);
-        if (user == null)
-        {
-            return false;
-        }
+        ValidateEmail(email, role);
 
-        if (IsRoleAccount(user.Role) && user.Role != role)
-        {
-            throw new AccountRoleConflictException(
-                "Systemejerens og regnskabets konti skal beholde deres roller.");
-        }
-
-        CheckAvailableRole(role, id);
         var updatedRows = db.Users
             .Where(user => user.Id == id)
             .Set(user => user.Email, NormalizeEmail(email))
             .Set(user => user.Role, role)
             .Update();
+
+        return updatedRows != 0;
+    }
 
         transaction.Commit();
         return updatedRows != 0;
@@ -112,6 +91,29 @@ public class UserService(MyDatabaseConnection db, IPasswordHasher<User> password
 
         var result = passwordHasher.VerifyHashedPassword(user, user.PasswordHash, password);
         return result == PasswordVerificationResult.Failed ? null : user;
+    }
+
+    public static void ValidateEmail(string email, string role)
+    {
+        if (role != "Employee")
+        {
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(email))
+        {
+            throw new ArgumentException("Angiv medarbejderens e-mail.", nameof(email));
+        }
+
+        var address = email.Trim();
+        var emailValidator = new EmailAddressAttribute();
+
+        if (!emailValidator.IsValid(address) ||
+            !address.EndsWith("@businessesbjerg.com", StringComparison.OrdinalIgnoreCase))
+        {
+            throw new ArgumentException(
+                "Medarbejdere skal have en e-mail på @businessesbjerg.com.", nameof(email));
+        }
     }
 
     private static string NormalizeEmail(string email) => email.Trim().ToLowerInvariant();

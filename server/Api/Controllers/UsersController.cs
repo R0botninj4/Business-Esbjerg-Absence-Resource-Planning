@@ -31,9 +31,9 @@ public class UsersController(UserService users) : ControllerBase
             var user = users.Create(request.Email, request.Password, request.Role);
             return CreatedAtAction(nameof(Get), new { user.Id }, UserResponse.From(user));
         }
-        catch (AccountRoleConflictException exception)
+        catch (ArgumentException exception) when (exception.ParamName == "email")
         {
-            return Conflict(new { message = exception.Message });
+            return BadRequest(new { message = exception.Message });
         }
         catch (SqliteException exception) when (exception.SqliteExtendedErrorCode == 2067)
         {
@@ -53,9 +53,9 @@ public class UsersController(UserService users) : ControllerBase
         {
             return users.Update(id, request.Email, request.Role) ? NoContent() : NotFound();
         }
-        catch (AccountRoleConflictException exception)
+        catch (ArgumentException exception) when (exception.ParamName == "email")
         {
-            return Conflict(new { message = exception.Message });
+            return BadRequest(new { message = exception.Message });
         }
         catch (SqliteException exception) when (exception.SqliteExtendedErrorCode == 2067)
         {

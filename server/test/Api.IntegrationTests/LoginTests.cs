@@ -17,7 +17,7 @@ public class LoginTests
     [Fact]
     public async Task Login_WithValidCredentials_GivesAccessToProfile()
     {
-        const string email = "employee@example.test";
+        const string email = "employee@businessesbjerg.com";
         const string password = "LocalTestPassword123!";
         // Hver test får sin egen database, så testene ikke påvirker hinanden.
         var databasePath = Path.Combine(Path.GetTempPath(), $"{Guid.NewGuid():N}.db");
@@ -56,7 +56,7 @@ public class LoginTests
     [Fact]
     public async Task Login_WithWrongPassword_ReturnsUnauthorized()
     {
-        const string email = "wrong-password@example.test";
+        const string email = "wrong-password@businessesbjerg.com";
         var databasePath = Path.Combine(Path.GetTempPath(), $"{Guid.NewGuid():N}.db");
 
         try
@@ -86,7 +86,7 @@ public class LoginTests
     [Fact]
     public async Task Logout_EndsTheSession()
     {
-        const string email = "logout@example.test";
+        const string email = "logout@businessesbjerg.com";
         const string password = "LocalTestPassword123!";
         var databasePath = Path.Combine(Path.GetTempPath(), $"{Guid.NewGuid():N}.db");
 
@@ -119,8 +119,8 @@ public class LoginTests
     [Fact]
     public async Task Admin_CanManageUsers_AndDeletedUserLosesAccess()
     {
-        const string adminEmail = "admin-crud@example.test";
-        const string email = "employee-crud@example.test";
+        const string adminEmail = "admin-crud@businessesbjerg.com";
+        const string email = "employee-crud@businessesbjerg.com";
         const string password = "CrudTestPassword123!";
         // Hver test får sin egen database, så testene ikke påvirker hinanden.
         var databasePath = Path.Combine(Path.GetTempPath(), $"{Guid.NewGuid():N}.db");
@@ -210,7 +210,7 @@ public class LoginTests
     [Fact]
     public async Task Admin_CannotCreateOverlappingEmployment()
     {
-        const string adminEmail = "employment-admin@example.test";
+        const string adminEmail = "employment-admin@businessesbjerg.com";
         const string password = "EmploymentTestPassword123!";
         // Hver test får sin egen database, så testene ikke påvirker hinanden.
         var databasePath = Path.Combine(Path.GetTempPath(), $"{Guid.NewGuid():N}.db");
@@ -225,7 +225,7 @@ public class LoginTests
             {
                 var users = scope.ServiceProvider.GetRequiredService<UserService>();
                 users.Create(adminEmail, password, "Admin");
-                var employee = users.Create("employment-employee@example.test", password, "Employee");
+                var employee = users.Create("employment-employee@businessesbjerg.com", password, "Employee");
                 employeeId = employee.Id;
             }
 
@@ -278,7 +278,7 @@ public class LoginTests
     [Fact]
     public async Task Admin_CanEndWorkSchedule_AndCreateNextPlan()
     {
-        const string email = "schedule-admin@example.test";
+        const string email = "schedule-admin@businessesbjerg.com";
         const string password = "ScheduleTestPassword123!";
         // Hver test får sin egen database, så testene ikke påvirker hinanden.
         var databasePath = Path.Combine(Path.GetTempPath(), $"{Guid.NewGuid():N}.db");
@@ -295,7 +295,7 @@ public class LoginTests
             {
                 var users = scope.ServiceProvider.GetRequiredService<UserService>();
                 users.Create(email, password, "Admin");
-                var employee = users.Create("schedule-employee@example.test", password, "Employee");
+                var employee = users.Create("schedule-employee@businessesbjerg.com", password, "Employee");
                 var employments = scope.ServiceProvider.GetRequiredService<EmploymentService>();
                 var employment = employments.Create(
                     employee.Id, EmploymentType.FullTime, new DateOnly(2026, 12, 1), null);
