@@ -1,4 +1,4 @@
-﻿using Infra;
+using Infra;
 using Microsoft.AspNetCore.Identity;
 using System.ComponentModel.DataAnnotations;
 using LinqToDB;
@@ -14,6 +14,20 @@ public class UserService(MyDatabaseConnection db, IPasswordHasher<User> password
     public User Create(string email, string password, string role)
     {
         ValidateEmail(email, role);
+        if (!IsRoleAccount(role))
+        {
+            return SaveUser(email, password, role);
+        }
+
+        using var transaction = db.BeginTransaction();
+        CheckAvailableRole(role, Guid.Empty);
+        var user = SaveUser(email, password, role);
+        transaction.Commit();
+        return user;
+    }
+
+    private User SaveUser(string email, string password, string role)
+    {
         var user = new User { Id = Guid.NewGuid(), Email = NormalizeEmail(email), Role = role };
         user.PasswordHash = passwordHasher.HashPassword(user, password);
         db.Insert(user);
@@ -23,20 +37,69 @@ public class UserService(MyDatabaseConnection db, IPasswordHasher<User> password
     public bool Update(Guid id, string email, string role)
     {
         ValidateEmail(email, role);
+        using var transaction = db.BeginTransaction();
+        var user = Find(id);
+        if (user == null)
+        {
+            return false;
+        }
 
+        if (IsRoleAccount(user.Role) && user.Role != role)
+        {
+            throw new AccountRoleConflictException(
+                "Systemejerens og regnskabets konti skal beholde deres roller.");
+        }
+
+        CheckAvailableRole(role, id);
         var updatedRows = db.Users
             .Where(user => user.Id == id)
             .Set(user => user.Email, NormalizeEmail(email))
             .Set(user => user.Role, role)
             .Update();
 
+        transaction.Commit();
         return updatedRows != 0;
     }
 
-    public bool Delete(Guid id) => db.Users
-        .Where(user => user.Id == id)
-        .Set(user => user.IsActive, false)
-        .Update() != 0;
+    public bool Delete(Guid id)
+    {
+        var user = Find(id);
+        if (user == null)
+        {
+            return false;
+        }
+
+        if (IsRoleAccount(user.Role))
+        {
+            throw new AccountRoleConflictException(
+                "Systemejerens og regnskabets konti kan ikke deaktiveres.");
+        }
+
+        return db.Users.Where(user => user.Id == id &&
+                                      user.Role != "Admin" && user.Role != "Accounting")
+            .Set(user => user.IsActive, false)
+            .Update() != 0;
+    }
+
+    private static bool IsRoleAccount(string role)
+    {
+        return role == "Admin" || role == "Accounting";
+    }
+
+    private void CheckAvailableRole(string role, Guid userId)
+    {
+        if (!IsRoleAccount(role))
+        {
+            return;
+        }
+
+        var alreadyExists = db.Users.Any(user => user.Role == role && user.Id != userId);
+        if (alreadyExists)
+        {
+            throw new AccountRoleConflictException(
+                "Der findes allerede en konto med rollen " + role + ".");
+        }
+    }
 
     public bool EmailExists(string email) => db.Users.Any(user => user.Email == NormalizeEmail(email));
 

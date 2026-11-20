@@ -174,12 +174,12 @@ public class LoginTests
             }
             Assert.True(foundEmployee);
 
-            using var updated = await admin.PutAsJsonAsync(userPath, new { email, role = "Accounting" });
+            using var updated = await admin.PutAsJsonAsync(userPath, new { email, role = "Employee" });
             Assert.Equal(HttpStatusCode.NoContent, updated.StatusCode);
             using var found = await admin.GetAsync(userPath);
             Assert.Equal(HttpStatusCode.OK, found.StatusCode);
             var profile = await found.Content.ReadFromJsonAsync<JsonElement>();
-            Assert.Equal("Accounting", profile.GetProperty("role").GetString());
+            Assert.Equal("Employee", profile.GetProperty("role").GetString());
 
             using var employeeLogin = await employee.PostAsJsonAsync("/api/auth/login", new { email, password });
             Assert.Equal(HttpStatusCode.OK, employeeLogin.StatusCode);

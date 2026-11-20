@@ -71,7 +71,14 @@ public class UsersController(UserService users) : ControllerBase
             return Conflict(new { message = "Du kan ikke slette din egen konto." });
         }
 
-        return users.Delete(id) ? NoContent() : NotFound();
+        try
+        {
+            return users.Delete(id) ? NoContent() : NotFound();
+        }
+        catch (AccountRoleConflictException exception)
+        {
+            return Conflict(new { message = exception.Message });
+        }
     }
 
     private bool IsOwnAccount(Guid id) =>
