@@ -20,6 +20,12 @@ public class HolidayRule
     [Column, NotNull]
     public decimal HolidayDaysPerMonth { get; set; }
 
+    [Column, Nullable]
+    public decimal? HolidayDaysPerYear { get; set; }
+
+    [Column, Nullable]
+    public decimal? SixthWeekHoursPerCalendarDay { get; set; }
+
     [Column, NotNull]
     public bool SixthWeekEnabled { get; set; }
 
