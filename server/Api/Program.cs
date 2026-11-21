@@ -14,8 +14,8 @@ builder.Services.AddControllers();
 builder.Services.AddScoped<UserService>();
 builder.Services.AddScoped<EmploymentService>();
 builder.Services.AddScoped<WorkScheduleService>();
-builder.Services.AddScoped<HolidayRuleService>();
-builder.Services.AddScoped<HolidayAccrualService>();
+builder.Services.AddScoped<HolidayHoursService>();
+builder.Services.AddScoped<CalendarService>();
 builder.Services.AddScoped<EmployeeService>();
 builder.Services.AddOpenApi();
 if (builder.Environment.IsDevelopment())
@@ -75,24 +75,8 @@ if (app.Environment.IsDevelopment())
     db.CreateTable<Employment>(tableOptions: TableOptions.CreateIfNotExists);
     db.CreateTable<WorkSchedule>(tableOptions: TableOptions.CreateIfNotExists);
     db.CreateTable<WorkScheduleDay>(tableOptions: TableOptions.CreateIfNotExists);
-    db.CreateTable<HolidayRule>(tableOptions: TableOptions.CreateIfNotExists);
-    // Ældre regelversioner får tomme felter, så historiske satser ikke bliver gættet.
-    if (db.Execute<int>("SELECT COUNT(*) FROM pragma_table_info('HolidayRules') WHERE name = 'HolidayDaysPerYear'") == 0)
-    {
-        db.Execute("ALTER TABLE HolidayRules ADD COLUMN HolidayDaysPerYear DECIMAL NULL");
-    }
-
-    if (db.Execute<int>("SELECT COUNT(*) FROM pragma_table_info('HolidayRules') WHERE name = 'SixthWeekHoursPerCalendarDay'") == 0)
-    {
-        db.Execute("ALTER TABLE HolidayRules ADD COLUMN SixthWeekHoursPerCalendarDay DECIMAL NULL");
-    }
-
-    db.CreateTable<HolidayAccrualMonth>(tableOptions: TableOptions.CreateIfNotExists);
-    db.CreateTable<HolidayAccrualDay>(tableOptions: TableOptions.CreateIfNotExists);
-    db.Execute("CREATE UNIQUE INDEX IF NOT EXISTS UX_AccrualMonths_User_Month ON HolidayAccrualMonths (UserId, Month)");
-    db.Execute("CREATE UNIQUE INDEX IF NOT EXISTS UX_AccrualDays_Month_Date_Account ON HolidayAccrualDays (AccrualMonthId, Date, Account)");
-    db.CreateTable<HolidayRulePeriodSettings>(tableOptions: TableOptions.CreateIfNotExists);
-    db.Execute("CREATE UNIQUE INDEX IF NOT EXISTS UX_HolidayRules_Date_Version ON HolidayRules (EffectiveFrom, Version)");
+    db.CreateTable<CalendarDay>(tableOptions: TableOptions.CreateIfNotExists);
+    db.Execute("CREATE UNIQUE INDEX IF NOT EXISTS UX_CalendarDays_Date_Version ON CalendarDays (Date, Version)");
     var users = scope.ServiceProvider.GetRequiredService<UserService>();
 
     var hasIsActiveColumn = db.Execute<int>(
