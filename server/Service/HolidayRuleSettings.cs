@@ -13,6 +13,12 @@ public class HolidayRuleSettings
     public decimal HolidayDaysPerMonth { get; set; }
 
     [JsonRequired]
+    public decimal HolidayDaysPerYear { get; set; }
+
+    [JsonRequired]
+    public decimal SixthWeekHoursPerCalendarDay { get; set; }
+
+    [JsonRequired]
     public bool SixthWeekEnabled { get; set; }
 
     [JsonRequired]
