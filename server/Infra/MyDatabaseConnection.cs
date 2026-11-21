@@ -19,4 +19,5 @@ public class MyDatabaseConnection : DataConnection
     public ITable<Employment> Employments => this.GetTable<Employment>();
     public ITable<WorkSchedule> WorkSchedules => this.GetTable<WorkSchedule>();
     public ITable<WorkScheduleDay> WorkScheduleDays => this.GetTable<WorkScheduleDay>();
+    public ITable<HolidayRule> HolidayRules => this.GetTable<HolidayRule>();
 }
