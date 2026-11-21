@@ -81,15 +81,16 @@ public class HolidayRuleService
         Validate(settings);
         var today = DateOnly.FromDateTime(DateTime.Today);
 
-        if (effectiveFrom < today)
+        if (effectiveFrom == default)
         {
-            throw new ArgumentException("Nye regler må ikke starte i fortiden.");
+            throw new ArgumentException("Angiv en ikrafttrædelsesdato.");
         }
 
         using var transaction = db.BeginTransaction();
 
-        // Første opsætning må starte i dag. Senere ændringer gælder fremadrettet.
-        if (effectiveFrom == today && db.HolidayRules.Any())
+        // Første opsætning kan beskrive eksisterende ansættelser.
+        // Senere ændringer må ikke ændre fortidens regler.
+        if (effectiveFrom <= today && db.HolidayRules.Any())
         {
             throw new ArgumentException("Ændringer skal starte på en fremtidig dato.");
         }
@@ -111,6 +112,8 @@ public class HolidayRuleService
         rule.EffectiveFrom = effectiveFrom;
         rule.Version = version;
         rule.HolidayDaysPerMonth = settings.HolidayDaysPerMonth;
+        rule.HolidayDaysPerYear = settings.HolidayDaysPerYear;
+        rule.SixthWeekHoursPerCalendarDay = settings.SixthWeekHoursPerCalendarDay;
         rule.SixthWeekEnabled = settings.SixthWeekEnabled;
         rule.SixthWeekHoursPerMonth = settings.SixthWeekHoursPerMonth;
         rule.FullTimeHoursPerWeek = settings.FullTimeHoursPerWeek;
@@ -175,6 +178,16 @@ public class HolidayRuleService
             throw new ArgumentException("Optjeningssatser må ikke være negative.");
         }
 
+        if (settings.HolidayDaysPerYear < settings.HolidayDaysPerMonth * 11)
+        {
+            throw new ArgumentException("Årstotalen må ikke være mindre end 11 måneders optjening.");
+        }
+
+        if (settings.SixthWeekHoursPerCalendarDay < 0)
+        {
+            throw new ArgumentException("Den daglige optjeningssats må ikke være negativ.");
+        }
+
         if (settings.FullTimeHoursPerWeek <= 0)
         {
             throw new ArgumentException("Fuldtidstimer pr. uge skal være større end 0.");
@@ -185,7 +198,8 @@ public class HolidayRuleService
             throw new ArgumentException("Grænser for gæld og overførsel må ikke være negative.");
         }
 
-        if (!settings.SixthWeekEnabled && settings.SixthWeekHoursPerMonth != 0)
+        if (!settings.SixthWeekEnabled &&
+            (settings.SixthWeekHoursPerMonth != 0 || settings.SixthWeekHoursPerCalendarDay != 0))
         {
             throw new ArgumentException("Optjeningen skal være 0, når 6. ferieuge er slået fra.");
         }
