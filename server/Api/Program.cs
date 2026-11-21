@@ -14,6 +14,8 @@ builder.Services.AddControllers();
 builder.Services.AddScoped<UserService>();
 builder.Services.AddScoped<EmploymentService>();
 builder.Services.AddScoped<WorkScheduleService>();
+builder.Services.AddScoped<HolidayHoursService>();
+builder.Services.AddScoped<CalendarService>();
 builder.Services.AddScoped<EmployeeService>();
 builder.Services.AddOpenApi();
 if (builder.Environment.IsDevelopment())
@@ -73,6 +75,8 @@ if (app.Environment.IsDevelopment())
     db.CreateTable<Employment>(tableOptions: TableOptions.CreateIfNotExists);
     db.CreateTable<WorkSchedule>(tableOptions: TableOptions.CreateIfNotExists);
     db.CreateTable<WorkScheduleDay>(tableOptions: TableOptions.CreateIfNotExists);
+    db.CreateTable<CalendarDay>(tableOptions: TableOptions.CreateIfNotExists);
+    db.Execute("CREATE UNIQUE INDEX IF NOT EXISTS UX_CalendarDays_Date_Version ON CalendarDays (Date, Version)");
     var users = scope.ServiceProvider.GetRequiredService<UserService>();
 
     var hasIsActiveColumn = db.Execute<int>(
