@@ -38,6 +38,10 @@ public class HolidayRule
     [Column, NotNull]
     public decimal MaximumTransferDays { get; set; }
 
+    // Perioderne gemmes i deres egen tabel.
+    [NotColumn]
+    public HolidayRulePeriodSettings? Periods { get; set; }
+
     [Column, NotNull]
     public DateTime CreatedAt { get; set; }
 

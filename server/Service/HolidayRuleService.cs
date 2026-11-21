@@ -30,24 +30,49 @@ public class HolidayRuleService
 
     public HolidayRule[] GetHistory()
     {
-        return db.HolidayRules
+        var rules = db.HolidayRules
             .OrderByDescending(rule => rule.EffectiveFrom)
             .ThenByDescending(rule => rule.Version)
             .ToArray();
+
+        foreach (var rule in rules)
+        {
+            rule.Periods = GetPeriodSettings(rule.Id);
+        }
+
+        return rules;
     }
 
     public HolidayRule? Find(Guid id)
     {
-        return db.HolidayRules.SingleOrDefault(rule => rule.Id == id);
+        var rule = db.HolidayRules.SingleOrDefault(rule => rule.Id == id);
+        if (rule != null)
+        {
+            rule.Periods = GetPeriodSettings(rule.Id);
+        }
+
+        return rule;
     }
 
     public HolidayRule? GetForDate(DateOnly date)
     {
-        return db.HolidayRules
+        var rule = db.HolidayRules
             .Where(rule => rule.EffectiveFrom <= date)
             .OrderByDescending(rule => rule.EffectiveFrom)
             .ThenByDescending(rule => rule.Version)
             .FirstOrDefault();
+
+        if (rule != null)
+        {
+            rule.Periods = GetPeriodSettings(rule.Id);
+        }
+
+        return rule;
+    }
+
+    private HolidayRulePeriodSettings? GetPeriodSettings(Guid ruleId)
+    {
+        return db.HolidayRulePeriods.SingleOrDefault(periods => periods.HolidayRuleId == ruleId);
     }
 
     public HolidayRule Create(
@@ -95,8 +120,45 @@ public class HolidayRuleService
         rule.CreatedAt = DateTime.UtcNow;
         rule.CreatedBy = createdBy;
 
+        var periods = new HolidayRulePeriodSettings();
+        periods.HolidayRuleId = rule.Id;
+        periods.HolidayEarningStartMonth = settings.HolidayEarningStartMonth;
+        periods.HolidayEarningStartDay = settings.HolidayEarningStartDay;
+        periods.HolidayUsageStartMonth = settings.HolidayUsageStartMonth;
+        periods.HolidayUsageStartDay = settings.HolidayUsageStartDay;
+        periods.HolidayUsageStartYearOffset = settings.HolidayUsageStartYearOffset;
+        periods.HolidayUsageEndMonth = settings.HolidayUsageEndMonth;
+        periods.HolidayUsageEndDay = settings.HolidayUsageEndDay;
+        periods.HolidayUsageEndYearOffset = settings.HolidayUsageEndYearOffset;
+        periods.SixthWeekEarningStartMonth = settings.SixthWeekEarningStartMonth;
+        periods.SixthWeekEarningStartDay = settings.SixthWeekEarningStartDay;
+        periods.SixthWeekUsageStartMonth = settings.SixthWeekUsageStartMonth;
+        periods.SixthWeekUsageStartDay = settings.SixthWeekUsageStartDay;
+        periods.SixthWeekUsageStartYearOffset = settings.SixthWeekUsageStartYearOffset;
+        periods.SixthWeekUsageEndMonth = settings.SixthWeekUsageEndMonth;
+        periods.SixthWeekUsageEndDay = settings.SixthWeekUsageEndDay;
+        periods.SixthWeekUsageEndYearOffset = settings.SixthWeekUsageEndYearOffset;
+        periods.MainHolidayDays = settings.MainHolidayDays;
+        periods.MainHolidayStartMonth = settings.MainHolidayStartMonth;
+        periods.MainHolidayStartDay = settings.MainHolidayStartDay;
+        periods.MainHolidayEndMonth = settings.MainHolidayEndMonth;
+        periods.MainHolidayEndDay = settings.MainHolidayEndDay;
+        periods.MainHolidayNoticeMonths = settings.MainHolidayNoticeMonths;
+        periods.OtherHolidayNoticeMonths = settings.OtherHolidayNoticeMonths;
+        periods.DebtDeadlineMonth = settings.DebtDeadlineMonth;
+        periods.DebtDeadlineDay = settings.DebtDeadlineDay;
+        periods.HolidayTransferDeadlineMonth = settings.HolidayTransferDeadlineMonth;
+        periods.HolidayTransferDeadlineDay = settings.HolidayTransferDeadlineDay;
+        periods.SixthWeekTransferDeadlineMonth = settings.SixthWeekTransferDeadlineMonth;
+        periods.SixthWeekTransferDeadlineDay = settings.SixthWeekTransferDeadlineDay;
+
+        // Kontrollér periodernes datoer, inden noget bliver gemt.
+        HolidayRulePeriodsCalculator.Calculate(periods, effectiveFrom.Year);
+        rule.Periods = periods;
+
         // Gem en ny version i stedet for at overskrive den gamle.
         db.Insert(rule);
+        db.Insert(periods);
         transaction.Commit();
         return rule;
     }

@@ -44,6 +44,32 @@ public class HolidayRulesController : ControllerBase
         return Ok(rules.GetPresets());
     }
 
+    [HttpGet("{id:guid}/periods")]
+    public ActionResult<HolidayRulePeriodsResult> GetPeriods(Guid id, [FromQuery] int earningYear)
+    {
+        var rule = rules.Find(id);
+        if (rule == null)
+        {
+            return NotFound();
+        }
+
+        if (rule.Periods == null)
+        {
+            return NotFound(new { message = "Denne ældre version har ingen periodeindstillinger." });
+        }
+
+        try
+        {
+            var periods = HolidayRulePeriodsCalculator.Calculate(rule.Periods, earningYear);
+            periods.SixthWeekEnabled = rule.SixthWeekEnabled;
+            return Ok(periods);
+        }
+        catch (ArgumentException exception)
+        {
+            return BadRequest(new { message = exception.Message });
+        }
+    }
+
     [HttpGet("for-date")]
     public ActionResult<HolidayRule> GetForDate([FromQuery] DateOnly date)
     {
