@@ -21,16 +21,19 @@ export function hoursPerWeek(days: WorkDay[]) {
     return total;
 }
 
-export function employmentText(days: WorkDay[]) {
+export function employmentText(days: WorkDay[], employmentType?: number) {
     const hours = hoursPerWeek(days);
-    const type = hours >= 37 ? "Full time" : "Part time";
+    let type = hours >= 37 ? "Full time" : "Part time";
+    if (employmentType === 1) type = "Full time";
+    if (employmentType === 2) type = "Part time";
+    if (employmentType === 3) type = "Hourly";
     return type + " - " + hours.toFixed(2) + " h/week";
 }
 
 export function scheduleOn(employee: Employee, date: Date): WorkDay[] {
     let days: WorkDay[] = [null, null, null, null, null];
     for (const period of employee.schedules) {
-        if (period.validFrom <= date) {
+        if (period.validFrom <= date && (!period.validTo || date <= period.validTo)) {
             days = period.days;
         }
     }
@@ -65,5 +68,7 @@ export function employmentToday(employee: Employee) {
     if (employee.endDate && employee.endDate < today) {
         return "Ended " + formatDate(employee.endDate);
     }
-    return employmentText(scheduleOn(employee, today));
+    const current = employee.schedules.find(period => period.validFrom <= today && (!period.validTo || period.validTo >= today));
+    if (!current) return "No current schedule";
+    return employmentText(current.days, current.employmentType);
 }

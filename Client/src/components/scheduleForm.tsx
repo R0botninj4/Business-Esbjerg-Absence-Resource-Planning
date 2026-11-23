@@ -1,11 +1,12 @@
-﻿import { useState, type SubmitEvent } from "react";
+import { useState, type SubmitEvent } from "react";
 import type { SchedulePeriod, WorkDay } from "../types/employee";
 import { employmentText } from "../utils/schedule";
+import { userError } from "../api/users";
 import { WeekScheduleInput } from "./weekScheduleInput";
 
 type Props = {
     startDays: WorkDay[]; // the current schedule, used as a starting point
-    onSave: (period: SchedulePeriod) => void;
+    onSave: (period: SchedulePeriod) => void | Promise<void>;
     onClose: () => void;
 };
 
@@ -14,8 +15,9 @@ export function ScheduleForm({ startDays, onSave, onClose }: Props) {
     const [days, setDays] = useState<WorkDay[]>(startDays);
     const [validFrom, setValidFrom] = useState("");
     const [error, setError] = useState("");
+    const [saving, setSaving] = useState(false);
 
-    function handleSubmit(e: SubmitEvent) {
+    async function handleSubmit(e: SubmitEvent) {
         e.preventDefault();
 
         if (validFrom === "") {
@@ -29,13 +31,22 @@ export function ScheduleForm({ startDays, onSave, onClose }: Props) {
             }
         }
 
-        onSave({ validFrom: new Date(validFrom + "T00:00"), days: days });
-        onClose();
+        if (saving) return;
+        setSaving(true);
+        setError("");
+        try {
+            await onSave({ validFrom: new Date(validFrom + "T00:00"), days });
+            onClose();
+        } catch (error) {
+            setError(error instanceof Error ? error.message : userError(error));
+        } finally {
+            setSaving(false);
+        }
     }
 
     return (
         <form onSubmit={handleSubmit} className="mt-4 border-t border-line pt-4">
-            <h3 className="text-xl mb-3">New schedule</h3>
+            <fieldset disabled={saving}><h3 className="text-xl mb-3">New schedule</h3>
 
             <label className="font-semibold">
                 Valid from{" "}
@@ -62,6 +73,7 @@ export function ScheduleForm({ startDays, onSave, onClose }: Props) {
                     Cancel
                 </button>
             </div>
+            </fieldset>
         </form>
     );
 }

@@ -1,192 +1,147 @@
-import { useState, type SubmitEvent } from "react";
-import { presets } from "../../mockdata/testRules";
-import type { Rule, RuleVersion } from "../../types/rule";
-import { formatDate } from "../../utils/format";
-import { currentVersion, upcomingVersions } from "../../utils/rules";
+import { useEffect, useState, type SubmitEvent } from "react";
+import { createRule, getRuleHistory, getRulePresets, settingsFromVersion, type RuleSettings, type RuleVersion } from "../../api/rules";
+import { userError } from "../../api/users";
+import { dateText } from "../../api/schedules";
 
-type Props = {
-    rules: Rule[];
-    onAddVersion: (ruleId: string, version: RuleVersion) => void;
-};
+// Labels and groups only. The values always come from the API.
+const groups: { title: string; fields: [keyof RuleSettings, string][] }[] = [
+    { title: "Accrual and accounts", fields: [
+        ["holidayDaysPerMonth", "Week 1–5: days earned per month"], ["holidayDaysPerYear", "Week 1–5: days per full year"],
+        ["sixthWeekHoursPerMonth", "Week 6: full-time hours per month"], ["sixthWeekHoursPerCalendarDay", "Week 6: hours per calendar day in a partial month"],
+        ["fullTimeHoursPerWeek", "Full-time working hours per week"], ["maximumDebtDays", "Maximum holiday debt (days)"], ["maximumTransferDays", "Maximum transfer (days)"],
+    ] },
+    { title: "Week 1–5 periods", fields: [
+        ["holidayEarningStartMonth", "Earning year starts: month"], ["holidayEarningStartDay", "Earning year starts: day"],
+        ["holidayUsageStartMonth", "Usage starts: month"], ["holidayUsageStartDay", "Usage starts: day"], ["holidayUsageStartYearOffset", "Usage starts: year offset"],
+        ["holidayUsageEndMonth", "Usage ends: month"], ["holidayUsageEndDay", "Usage ends: day"], ["holidayUsageEndYearOffset", "Usage ends: year offset"],
+    ] },
+    { title: "Week 6 periods", fields: [
+        ["sixthWeekEarningStartMonth", "Earning year starts: month"], ["sixthWeekEarningStartDay", "Earning year starts: day"],
+        ["sixthWeekUsageStartMonth", "Usage starts: month"], ["sixthWeekUsageStartDay", "Usage starts: day"], ["sixthWeekUsageStartYearOffset", "Usage starts: year offset"],
+        ["sixthWeekUsageEndMonth", "Usage ends: month"], ["sixthWeekUsageEndDay", "Usage ends: day"], ["sixthWeekUsageEndYearOffset", "Usage ends: year offset"],
+    ] },
+    { title: "Main holiday and notice", fields: [
+        ["mainHolidayDays", "Main holiday length (days)"], ["mainHolidayStartMonth", "Main holiday window starts: month"], ["mainHolidayStartDay", "Main holiday window starts: day"],
+        ["mainHolidayEndMonth", "Main holiday window ends: month"], ["mainHolidayEndDay", "Main holiday window ends: day"],
+        ["mainHolidayNoticeMonths", "Main holiday notice (months)"], ["otherHolidayNoticeMonths", "Other holiday notice (months)"],
+    ] },
+    { title: "Debt and transfer deadlines", fields: [
+        ["debtDeadlineMonth", "Debt deadline: month"], ["debtDeadlineDay", "Debt deadline: day"],
+        ["holidayTransferDeadlineMonth", "Week 1–5 transfer deadline: month"], ["holidayTransferDeadlineDay", "Week 1–5 transfer deadline: day"],
+        ["sixthWeekTransferDeadlineMonth", "Week 6 transfer deadline: month"], ["sixthWeekTransferDeadlineDay", "Week 6 transfer deadline: day"],
+    ] },
+];
 
-const groupColors = {
-    "Week 1–5": "bg-navy/10",
-    "Week 6": "bg-slate/20",
-    "General": "bg-line",
-};
-
-export function AdminMain({ rules, onAddVersion }: Props) {
-    const [selectedPreset, setSelectedPreset] = useState("Ferieloven + 6. ferieuge");
-    const [changed, setChanged] = useState(false); // true when the admin has changed a value after picking a preset
-    const [openHistory, setOpenHistory] = useState<string | null>(null); // the rule whose history is shown
-
-    // The "Schedule a change" form
-    const [ruleId, setRuleId] = useState(rules[0]?.id ?? "");
-    const [value, setValue] = useState("");
+export function AdminMain() {
+    const [history, setHistory] = useState<RuleVersion[]>([]);
+    const [presets, setPresets] = useState<RuleSettings[]>([]);
+    const [settings, setSettings] = useState<RuleSettings | null>(null);
     const [effectiveFrom, setEffectiveFrom] = useState("");
-    const [reason, setReason] = useState("");
+    const [loading, setLoading] = useState(true);
+    const [saving, setSaving] = useState(false);
     const [error, setError] = useState("");
+    const [success, setSuccess] = useState("");
+    const [selectedId, setSelectedId] = useState("");
 
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-
-    // "Edit" on a row fills in the form with that rule
-    function editRule(rule: Rule) {
-        setRuleId(rule.id);
-        setValue(currentVersion(rule, today)?.value ?? "");
+    async function load() {
+        setLoading(true);
         setError("");
+        try {
+            const saved = await getRuleHistory();
+            const templates = await getRulePresets();
+            setHistory(saved);
+            setPresets(templates);
+            setSelectedId(saved[0]?.id || "");
+            const latest = saved[0];
+            // An incomplete historical version must not silently receive preset values.
+            if (latest) setSettings(settingsFromVersion(latest));
+            else setSettings(templates[0] ? { ...templates[0] } : null);
+        } catch (error) { setError(userError(error)); }
+        finally { setLoading(false); }
+    }
+    useEffect(() => { void load(); }, []);
+
+    function changeNumber(field: keyof RuleSettings, value: string) {
+        if (!settings) return;
+        setSettings({ ...settings, [field]: value === "" ? NaN : Number(value) });
     }
 
-    function handleSubmit(e: SubmitEvent) {
-        e.preventDefault();
-
-        if (value.trim() === "" || effectiveFrom === "") {
-            setError("Fill in the new value and the date it starts.");
-            return;
-        }
-
-        const date = new Date(effectiveFrom + "T00:00");
-        if (date < today) {
-            setError("A change can't start in the past – old periods must not be changed.");
-            return;
-        }
-
-        onAddVersion(ruleId, { value: value, effectiveFrom: date, reason: reason });
-        setChanged(true);
-        setValue("");
-        setEffectiveFrom("");
-        setReason("");
+    async function save(event: SubmitEvent) {
+        event.preventDefault();
+        if (!settings || saving) return;
+        setSaving(true);
         setError("");
+        setSuccess("");
+        try {
+            const saved = await createRule(effectiveFrom, settings);
+            setHistory(current => [saved, ...current]);
+            setSelectedId(saved.id);
+            setEffectiveFrom("");
+            setSuccess("New rule version saved. Previous versions have not been changed.");
+        } catch (error) { setError(userError(error)); }
+        finally { setSaving(false); }
     }
 
-    return (
-        <div>
-            <h1 className="text-3xl">Rules & parameters</h1>
-            <p className="text-slate mb-6">
-                Every rule has a start date. A new value applies from that date and never changes history –
-                old periods keep the values that applied then.
-            </p>
+    const today = dateText(new Date());
+    const active = history.filter(version => version.effectiveFrom <= today)
+        .sort((a, b) => b.effectiveFrom.localeCompare(a.effectiveFrom) || b.version - a.version)[0];
+    const selected = history.find(version => version.id === selectedId);
+    const selectedSettings = selected ? settingsFromVersion(selected) : null;
+    const selectedValues = selected ? { ...selected, ...selected.periods } : null;
+    if (loading) return <p role="status">Loading rules...</p>;
 
-            {/* Presets */}
-            <h2 className="text-xl mb-3">Start from a preset</h2>
-            <div className="grid grid-cols-3 gap-4 mb-8">
-                {presets.map(preset => (
-                    <button
-                        key={preset.name}
-                        onClick={() => setSelectedPreset(preset.name)}
-                        className={"text-left bg-white rounded p-4 border-2 " +
-                            (preset.name === selectedPreset ? "border-orange" : "border-line hover:border-orange/40")}
-                    >
-                        <p className="font-semibold">
-                            {preset.name}
-                            {preset.name === selectedPreset && (
-                                <span className="ml-2 text-xs text-white bg-orange px-2 py-1 rounded-full">Selected</span>
-                            )}
-                        </p>
-                        <p className="text-sm text-slate mt-1">{preset.description}</p>
-                    </button>
-                ))}
-            </div>
-
-            <div className="grid grid-cols-3 gap-6 items-start">
-                {/* The rules */}
-                <div className="col-span-2 bg-white border border-line rounded p-6">
-                    <h2 className="text-2xl mb-4">
-                        Active rules: {selectedPreset}
-                        {changed && <span className="ml-2 text-sm bg-gold text-white px-2 py-1 rounded-full">Custom</span>}
-                    </h2>
-
-                    <div className="grid grid-cols-12 gap-2 text-sm font-semibold text-slate pb-2 border-b border-line">
-                        <span className="col-span-4">Rule</span>
-                        <span className="col-span-4">Value</span>
-                        <span className="col-span-2">From</span>
-                    </div>
-
-                    {rules.map(rule => {
-                        const current = currentVersion(rule, today);
-                        const upcoming = upcomingVersions(rule, today);
-
-                        return (
-                            <div key={rule.id} className="border-b border-line last:border-0 py-3">
-                                <div className="grid grid-cols-12 gap-2 items-center">
-                                    <span className="col-span-4">
-                                        <span className={"text-xs font-semibold px-2 py-1 rounded-full mr-2 " + groupColors[rule.group]}>
-                                            {rule.group}
-                                        </span>
-                                        {rule.name}
-                                    </span>
-                                    <span className="col-span-4 font-semibold">{current?.value}</span>
-                                    <span className="col-span-2">{current && formatDate(current.effectiveFrom)}</span>
-                                    <span className="col-span-2 flex gap-3 justify-end">
-                                        <button onClick={() => editRule(rule)} className="font-semibold hover:text-orange">Edit</button>
-                                        <button
-                                            onClick={() => setOpenHistory(openHistory === rule.id ? null : rule.id)}
-                                            className="font-semibold hover:text-orange"
-                                        >
-                                            History
-                                        </button>
-                                    </span>
-                                </div>
-
-                                {/* Scheduled changes that haven't started yet */}
-                                {upcoming.map(version => (
-                                    <p key={version.effectiveFrom.getTime()} className="text-sm text-gold font-semibold mt-1">
-                                        Scheduled: {version.value} from {formatDate(version.effectiveFrom)}
-                                    </p>
-                                ))}
-
-                                {/* All versions, newest first */}
-                                {openHistory === rule.id && (
-                                    <div className="mt-2 bg-cream rounded p-3 text-sm">
-                                        {[...rule.versions].reverse().map(version => (
-                                            <p key={version.effectiveFrom.getTime()}>
-                                                <strong>{formatDate(version.effectiveFrom)}:</strong> {version.value}
-                                                {version.reason && <span className="text-slate"> · {version.reason}</span>}
-                                            </p>
-                                        ))}
-                                    </div>
-                                )}
-                            </div>
-                        );
+    return <div>
+        <h1 className="text-3xl mb-4">Rules & parameters</h1>
+        <p className="mb-4">{active ? "Active: " + active.name + " from " + active.effectiveFrom : "No active rule version yet."}</p>
+        {error && <p role="alert" className="text-red-600 mb-4">{error} <button disabled={saving} onClick={() => void load()} className="underline">Reload</button></p>}
+        {success && <p role="status" className="mb-4">{success}</p>}
+        <div className="bg-white border border-line rounded p-6 mb-6">
+            <h2 className="text-2xl mb-3">Saved history and upcoming changes</h2>
+            {history.length === 0 && <p>No saved rule versions.</p>}
+            <div className="flex flex-wrap gap-3">{history.map(version => <button key={version.id} onClick={() => setSelectedId(version.id)} className={"border rounded p-3 " + (selectedId === version.id ? "border-orange" : "border-line")}>
+                {version.name} · {version.effectiveFrom} · v{version.version}{version.effectiveFrom > today ? " (scheduled)" : ""}
+            </button>)}</div>
+            {selected && <div className="mt-4">
+                <p>Saved {new Date(selected.createdAt).toLocaleString()} · by {selected.createdBy}</p>
+                {!selectedSettings && <p className="mt-2 text-red-600">This historical version is incomplete. Missing fields have not been filled in from a preset.</p>}
+                {groups.map(group => <details key={group.title} className="mt-3"><summary className="font-semibold cursor-pointer">{group.title}</summary>
+                    {group.fields.map(([field, label]) => {
+                        const value = selectedValues?.[field];
+                        return <p key={field}>{label}: <strong>{value === null || value === undefined ? "Not recorded" : String(value)}</strong></p>;
                     })}
-                </div>
-
-                {/* Schedule a change */}
-                <form onSubmit={handleSubmit} className="bg-white border border-line rounded p-6 border-b-4 border-b-orange space-y-4">
-                    <h2 className="text-2xl">Schedule a change</h2>
-
-                    <label className="block font-semibold">
-                        Rule
-                        <select value={ruleId} onChange={e => setRuleId(e.target.value)} className="mt-1 w-full border border-line rounded p-2 font-normal bg-white">
-                            {rules.map(rule => (
-                                <option key={rule.id} value={rule.id}>{rule.group} – {rule.name}</option>
-                            ))}
-                        </select>
-                    </label>
-
-                    <label className="block font-semibold">
-                        New value
-                        <input value={value} onChange={e => setValue(e.target.value)} className="mt-1 w-full border border-line rounded p-2 font-normal" />
-                    </label>
-
-                    <label className="block font-semibold">
-                        Effective from
-                        <input type="date" value={effectiveFrom} onChange={e => setEffectiveFrom(e.target.value)} className="mt-1 w-full border border-line rounded p-2 font-normal" />
-                    </label>
-
-                    <label className="block font-semibold">
-                        Reason / source
-                        <input value={reason} onChange={e => setReason(e.target.value)} placeholder="e.g. new KL agreement" className="mt-1 w-full border border-line rounded p-2 font-normal" />
-                    </label>
-
-                    <p className="text-sm text-slate">Earlier periods are not recalculated.</p>
-                    {error && <p className="text-red-600">{error}</p>}
-
-                    <button type="submit" className="w-full bg-navy text-white font-semibold py-3 rounded hover:bg-navy/90">
-                        Save change
-                    </button>
-                </form>
-            </div>
+                </details>)}
+                <p className="mt-2">Week 6: {selected.sixthWeekEnabled ? "Enabled" : "Disabled"} · Transfers: {selected.allowTransfer ? "Allowed" : "Disabled"}</p>
+                <button disabled={!selectedSettings || saving} onClick={() => { setSettings(selectedSettings); setSuccess(""); }} className="mt-3 underline disabled:opacity-40">Use this version as a starting point</button>
+            </div>}
         </div>
-    );
+        <form onSubmit={save} className="bg-white border border-line rounded p-6">
+            <fieldset disabled={saving}>
+                <h2 className="text-2xl mb-3">Create a new rule version</h2>
+                <p className="mb-3 text-slate">All settings are saved together. Old versions are kept. Year offset 0 means the earning year's start year; 1 means the following year.</p>
+                <label className="block mb-4">Start from a preset
+                    <select defaultValue="" onChange={event => { const preset = presets[Number(event.target.value)]; if (preset) setSettings({ ...preset }); }} className="border border-line rounded p-2 ml-3">
+                        <option value="" disabled>Choose preset</option>{presets.map((preset, index) => <option key={index} value={index}>{preset.name}</option>)}
+                    </select>
+                </label>
+                {!settings ? <p>Choose a complete saved version or a preset to create new settings.</p> : <>
+                    <div className="grid grid-cols-2 gap-4">
+                        <label>Version name / source<input required maxLength={100} value={settings.name} onChange={event => setSettings({ ...settings, name: event.target.value })} className="block w-full border border-line rounded p-2" /></label>
+                        <label>Effective from<input required type="date" value={effectiveFrom} onChange={event => setEffectiveFrom(event.target.value)} className="block w-full border border-line rounded p-2" /></label>
+                    </div>
+                    <p className="text-sm text-slate mt-2">The first version can describe existing periods. Later changes must start after today.</p>
+                    <div className="flex gap-6 my-4">
+                        <label><input type="checkbox" checked={settings.sixthWeekEnabled} onChange={event => setSettings({ ...settings, sixthWeekEnabled: event.target.checked })} /> Enable week 6</label>
+                        <label><input type="checkbox" checked={settings.allowTransfer} onChange={event => setSettings({ ...settings, allowTransfer: event.target.checked })} /> Allow transfers</label>
+                    </div>
+                    {groups.map(group => <div key={group.title} className="border-t border-line mt-4 pt-4">
+                        <h3 className="text-xl mb-3">{group.title}</h3>
+                        <div className="grid grid-cols-3 gap-4">{group.fields.map(([field, label]) => <label key={field}>{label}
+                            <input required type="number" step="any" min="0" value={Number.isNaN(settings[field]) ? "" : String(settings[field])} onChange={event => changeNumber(field, event.target.value)} className="block border border-line rounded w-full p-2" />
+                        </label>)}</div>
+                    </div>)}
+                    <button type="submit" className="bg-navy text-white rounded px-6 py-3 mt-6">{saving ? "Saving..." : "Save new version"}</button>
+                </>}
+            </fieldset>
+        </form>
+    </div>;
 }

@@ -7,7 +7,7 @@ using Service;
 namespace Api.Controllers;
 
 [ApiController]
-[Authorize(Roles = "Admin")]
+[Authorize(Roles = "Admin,Accounting")]
 [Route("api/employees")]
 public class EmployeesController : ControllerBase
 {
@@ -18,7 +18,16 @@ public class EmployeesController : ControllerBase
         employees = service;
     }
 
+    [HttpGet]
+    public IEnumerable<UsersController.UserResponse> List([FromServices] UserService users)
+    {
+        return users.List()
+            .Where(user => user.Role == "Employee")
+            .Select(UsersController.UserResponse.From);
+    }
+
     [HttpPost]
+    [Authorize(Roles = "Admin")]
     public ActionResult<UsersController.UserResponse> Create(
         CreateEmployeeRequest request)
     {
