@@ -1,6 +1,13 @@
 ﻿export type WorkDay = { from: string; to: string } | null;
 
+export type SchedulePeriod = {
+    validFrom: Date;
+    days: WorkDay[]; 
+};
+
 export type Employee = {
+    id: number;
     name: string;
-    schedule: WorkDay[]; 
+    email: string;
+    schedules: SchedulePeriod[]; 
 };

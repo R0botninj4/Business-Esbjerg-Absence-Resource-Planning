@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { WorkSchedule } from "../../components/workSchedule";
-import { testEmployees } from "../../mockdata/testEmployees";
+import type { Employee } from "../../types/employee";
 import { testEvents } from "../../mockdata/testEvents";
 import type { HolidayRequest, RequestStatus } from "../../types/holidayRequest";
 import { formatDate, holidayTypeName } from "../../utils/format";
@@ -8,9 +8,10 @@ import { formatDate, holidayTypeName } from "../../utils/format";
 type Props = {
     requests: HolidayRequest[];
     onDecide: (id: number, status: RequestStatus, comment: string) => void;
+    employees: Employee[];
 };
 
-export function AccountingMain({ requests, onDecide }: Props) {
+export function AccountingMain({ requests, onDecide, employees }: Props) {
     const [selectedId, setSelectedId] = useState<number | null>(null);
     const [comment, setComment] = useState("");
     const [error, setError] = useState("");
@@ -57,7 +58,7 @@ export function AccountingMain({ requests, onDecide }: Props) {
     return (
         <div>
             <h1 className="text-3xl">Approvals</h1>
-            <p className="text-slate mb-6">{pending.length} requests waiting · oldest first</p>
+            <p className="text-slate mb-6">{pending.length} requests waiting - oldest first</p>
 
             <div className="grid grid-cols-4 gap-6 items-start">
                 {/* Left: the list of requests */}
@@ -116,7 +117,7 @@ export function AccountingMain({ requests, onDecide }: Props) {
                         </div>
                     </div>
 
-                    <WorkSchedule employees={testEmployees} requests={requests} events={testEvents} selected={selected} />
+                    <WorkSchedule employees={employees} requests={requests} events={testEvents} selected={selected} />
                 </div>
             </div>
         </div>

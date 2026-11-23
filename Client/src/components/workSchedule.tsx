@@ -4,6 +4,7 @@ import type { Employee } from "../types/employee";
 import type { HolidayRequest } from "../types/holidayRequest";
 import { mondayOfWeek, startOfWeek, weekdayIndex, weekNumber, weekYear } from "../utils/dates";
 import { formatDate } from "../utils/format";
+import { scheduleOn } from "../utils/schedule";
 
 type Props = {
     employees: Employee[];
@@ -20,7 +21,6 @@ type Cell = {
 
 export function WorkSchedule({ employees, requests, events, selected }: Props) {
     const [monday, setMonday] = useState(startOfWeek(selected ? selected.start : new Date()));
-    
     const [weekInput, setWeekInput] = useState("");
     const [yearInput, setYearInput] = useState("");
     
@@ -77,8 +77,8 @@ export function WorkSchedule({ employees, requests, events, selected }: Props) {
         if (holiday && selected && holiday.id === selected.id) return { text: "This request", color: "bg-orange text-white font-semibold", working: false };
         if (holiday && holiday.status === "pending") return { text: "Pending", color: "bg-gold text-white font-semibold", working: false };
         if (holiday) return { text: "Holiday", color: "bg-navy text-white font-semibold", working: false };
-        
-        const workDay = employee.schedule[weekdayIndex(day)];
+
+        const workDay = scheduleOn(employee, day)[weekdayIndex(day)];
         if (!workDay) return { text: "Not working", color: "bg-line text-slate", working: false };
         
         return { text: workDay.from + "–" + workDay.to, color: "bg-white", working: true };
