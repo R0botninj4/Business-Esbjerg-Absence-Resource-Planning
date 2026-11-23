@@ -16,16 +16,23 @@ builder.Services.AddScoped<EmploymentService>();
 builder.Services.AddScoped<WorkScheduleService>();
 builder.Services.AddScoped<HolidayHoursService>();
 builder.Services.AddScoped<CalendarService>();
+builder.Services.AddScoped<HolidayRuleService>();
+builder.Services.AddScoped<HolidayAccrualService>();
 builder.Services.AddScoped<EmployeeService>();
 builder.Services.AddOpenApi();
-if (builder.Environment.IsDevelopment())
+builder.Services.AddScoped<MyDatabaseConnection>(services =>
 {
-    var options = new DataOptions().UseSQLite("Data Source=business-esbjerg.db");
-    var dbOptions = new DataOptions<MyDatabaseConnection>(options);
+    var connectionString = services.GetRequiredService<IConfiguration>().GetConnectionString("Default");
 
-    builder.Services.AddScoped<MyDatabaseConnection>(
-        _ => new MyDatabaseConnection(dbOptions));
-}
+    if (string.IsNullOrWhiteSpace(connectionString))
+    {
+        throw new InvalidOperationException(
+            "Mangler forbindelse til databasen. Sæt miljøvariablen ConnectionStrings__Default.");
+    }
+
+    var options = new DataOptions().UsePostgreSQL(connectionString);
+    return new MyDatabaseConnection(new DataOptions<MyDatabaseConnection>(options));
+});
 
 builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
     .AddCookie(options =>
@@ -66,26 +73,15 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
+using (var scope = app.Services.CreateScope())
+{
+    DatabaseMigrator.Migrate(scope.ServiceProvider.GetRequiredService<MyDatabaseConnection>());
+}
+
 if (app.Environment.IsDevelopment())
 {
     using var scope = app.Services.CreateScope();
-    var db = scope.ServiceProvider.GetRequiredService<MyDatabaseConnection>();
-    db.CreateTable<User>(tableOptions: TableOptions.CreateIfNotExists);
-    db.Execute("CREATE UNIQUE INDEX IF NOT EXISTS UX_Users_Email ON Users (Email)");
-    db.CreateTable<Employment>(tableOptions: TableOptions.CreateIfNotExists);
-    db.CreateTable<WorkSchedule>(tableOptions: TableOptions.CreateIfNotExists);
-    db.CreateTable<WorkScheduleDay>(tableOptions: TableOptions.CreateIfNotExists);
-    db.CreateTable<CalendarDay>(tableOptions: TableOptions.CreateIfNotExists);
-    db.Execute("CREATE UNIQUE INDEX IF NOT EXISTS UX_CalendarDays_Date_Version ON CalendarDays (Date, Version)");
     var users = scope.ServiceProvider.GetRequiredService<UserService>();
-
-    var hasIsActiveColumn = db.Execute<int>(
-        "SELECT COUNT(*) FROM pragma_table_info('Users') WHERE name = 'IsActive'") > 0;
-
-    if (!hasIsActiveColumn)
-    {
-        db.Execute("ALTER TABLE Users ADD COLUMN IsActive INTEGER NOT NULL DEFAULT 1");
-    }
 
     SeedUser("Employee");
     SeedUser("Accounting");

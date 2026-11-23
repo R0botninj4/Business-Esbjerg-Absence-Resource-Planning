@@ -1,4 +1,4 @@
-using System.Net;
+﻿using System.Net;
 using System.Net.Http.Json;
 using Infra;
 using LinqToDB;
@@ -12,14 +12,13 @@ public class EmployeeTests
     [Fact]
     public async Task CreateEmployee_SavesEverythingOrNothing()
     {
-        var databasePath = Path.Combine(Path.GetTempPath(), $"{Guid.NewGuid():N}.db");
+        var schema = TestDatabase.CreateSchema();
 
         try
         {
-            using var factory = LoginTests.CreateFactory(databasePath);
+            using var factory = LoginTests.CreateFactory(schema);
             using var client = LoginTests.CreateClient(factory);
-
-            // Opret en admin til testen.
+            
             using (var scope = factory.Services.CreateScope())
             {
                 var users = scope.ServiceProvider.GetRequiredService<UserService>();
@@ -33,8 +32,7 @@ public class EmployeeTests
             });
 
             Assert.Equal(HttpStatusCode.OK, login.StatusCode);
-
-            // Deltid uden ugeplan skal afvises.
+            
             using var invalid = await client.PostAsJsonAsync("/api/employees", new
             {
                 email = "employee@businessesbjerg.com",
@@ -50,8 +48,7 @@ public class EmployeeTests
                 var users = scope.ServiceProvider.GetRequiredService<UserService>();
                 Assert.False(users.EmailExists("employee@businessesbjerg.com"));
             }
-
-            // Fuldtid får automatisk en ugeplan.
+            
             using var created = await client.PostAsJsonAsync("/api/employees", new
             {
                 email = "employee@businessesbjerg.com",
@@ -82,7 +79,7 @@ public class EmployeeTests
         }
         finally
         {
-            File.Delete(databasePath);
+            TestDatabase.DropSchema(schema);
         }
     }
 }

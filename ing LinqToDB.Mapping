@@ -1,0 +1,138 @@
+[1mdiff --git a/server/Infra/Employment.cs b/server/Infra/Employment.cs[m
+[1mindex 35f48cb..0f68fe4 100644[m
+[1m--- a/server/Infra/Employment.cs[m
+[1m+++ b/server/Infra/Employment.cs[m
+[36m@@ -2,21 +2,21 @@[m
+ [m
+ namespace Infra;[m
+ [m
+[31m-[Table("Employments")][m
+[32m+[m[32m[Table("employments")][m
+ public class Employment[m
+ {[m
+[31m-    [PrimaryKey, Column][m
+[32m+[m[32m    [PrimaryKey, Column("id")][m
+     public Guid Id { get; set; }[m
+ [m
+[31m-    [Column, NotNull][m
+[32m+[m[32m    [Column("user_id"), NotNull][m
+     public Guid UserId { get; set; }[m
+ [m
+[31m-    [Column, NotNull][m
+[32m+[m[32m    [Column("type"), NotNull][m
+     public EmploymentType Type { get; set; }[m
+ [m
+[31m-    [Column, NotNull][m
+[32m+[m[32m    [Column("start_date"), NotNull][m
+     public DateOnly StartDate { get; set; }[m
+ [m
+[31m-    [Column, Nullable][m
+[32m+[m[32m    [Column("end_date"), Nullable][m
+     public DateOnly? EndDate { get; set; }[m
+ }[m
+\ No newline at end of file[m
+[1mdiff --git a/server/Infra/User.cs b/server/Infra/User.cs[m
+[1mindex 16af258..9265c9f 100644[m
+[1m--- a/server/Infra/User.cs[m
+[1m+++ b/server/Infra/User.cs[m
+[36m@@ -2,21 +2,21 @@[m [musing LinqToDB.Mapping;[m
+ [m
+ namespace Infra;[m
+ [m
+[31m-[Table("Users")][m
+[32m+[m[32m[Table("users")][m
+ public class User[m
+ {[m
+[31m-    [PrimaryKey, Column][m
+[32m+[m[32m    [PrimaryKey, Column("id")][m
+     public Guid Id { get; set; }[m
+ [m
+[31m-    [Column, NotNull][m
+[32m+[m[32m    [Column("email"), NotNull][m
+     public string Email { get; set; } = "";[m
+ [m
+[31m-    [Column, NotNull][m
+[32m+[m[32m    [Column("password_hash"), NotNull][m
+     public string PasswordHash { get; set; } = "";[m
+ [m
+[31m-    [Column, NotNull][m
+[32m+[m[32m    [Column("role"), NotNull][m
+     public string Role { get; set; } = "Employee";[m
+ [m
+[31m-    [Column, NotNull][m
+[32m+[m[32m    [Column("is_active"), NotNull][m
+     public bool IsActive { get; set; } = true;[m
+ }[m
+\ No newline at end of file[m
+[1mdiff --git a/server/Infra/WorkSchedule.cs b/server/Infra/WorkSchedule.cs[m
+[1mindex d42d17a..4188bbf 100644[m
+[1m--- a/server/Infra/WorkSchedule.cs[m
+[1m+++ b/server/Infra/WorkSchedule.cs[m
+[36m@@ -2,20 +2,18 @@[m
+ [m
+ namespace Infra;[m
+ [m
+[31m-[Table("WorkSchedules")][m
+[32m+[m[32m[Table("work_schedules")][m
+ public class WorkSchedule[m
+ {[m
+[31m-    [PrimaryKey, Column][m
+[32m+[m[32m    [PrimaryKey, Column("id")][m
+     public Guid Id { get; set; }[m
+ [m
+[31m-    [Column, NotNull][m
+[31m-    // Ansættelsen, som ugeplanen tilhører.[m
+[32m+[m[32m    [Column("employment_id"), NotNull][m
+     public Guid EmploymentId { get; set; }[m
+ [m
+[31m-    [Column, NotNull][m
+[32m+[m[32m    [Column("start_date"), NotNull][m
+     public DateOnly StartDate { get; set; }[m
+ [m
+[31m-    [Column, Nullable][m
+[31m-    // Tom slutdato betyder, at planen fortsætter.[m
+[32m+[m[32m    [Column("end_date"), Nullable][m
+     public DateOnly? EndDate { get; set; }[m
+[31m-}[m
+[32m+[m[32m}[m
+\ No newline at end of file[m
+[1mdiff --git a/server/Infra/WorkScheduleDay.cs b/server/Infra/WorkScheduleDay.cs[m
+[1mindex 362ec6c..524567c 100644[m
+[1m--- a/server/Infra/WorkScheduleDay.cs[m
+[1m+++ b/server/Infra/WorkScheduleDay.cs[m
+[36m@@ -2,26 +2,24 @@[m
+ [m
+ namespace Infra;[m
+ [m
+[31m-[Table("WorkScheduleDays")][m
+[32m+[m[32m[Table("work_schedule_days")][m
+ public class WorkScheduleDay[m
+ {[m
+[31m-    [PrimaryKey, Column][m
+[32m+[m[32m    [PrimaryKey, Column("id")][m
+     public Guid Id { get; set; }[m
+ [m
+[31m-    [Column, NotNull][m
+[31m-    // Forbinder dagen med dens ugeplan.[m
+[32m+[m[32m    [Column("work_schedule_id"), NotNull][m
+     public Guid WorkScheduleId { get; set; }[m
+ [m
+[31m-    [Column, NotNull][m
+[32m+[m[32m    [Column("day"), NotNull][m
+     public DayOfWeek Day { get; set; }[m
+ [m
+[31m-    [Column, NotNull][m
+[32m+[m[32m    [Column("is_day_off"), NotNull][m
+     public bool IsDayOff { get; set; }[m
+ [m
+[31m-    [Column, Nullable][m
+[31m-    // På en fridag er start- og sluttid tomme.[m
+[32m+[m[32m    [Column("start_time"), Nullable][m
+     public TimeOnly? StartTime { get; set; }[m
+ [m
+[31m-    [Column, Nullable][m
+[32m+[m[32m    [Column("end_time"), Nullable][m
+     public TimeOnly? EndTime { get; set; }[m
+[31m-}[m
+[32m+[m[32m}[m
+\ No newline at end of file[m
