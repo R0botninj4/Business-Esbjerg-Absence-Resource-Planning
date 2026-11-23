@@ -10,7 +10,7 @@ import type { Employee, SchedulePeriod } from "../../types/employee";
 import type { HolidayRequest } from "../../types/holidayRequest";
 import { formatDate } from "../../utils/format";
 import { weekdayIndex } from "../../utils/dates";
-import { employmentText, hoursOfDay, scheduleOn, weekdayNames } from "../../utils/schedule";
+import { employmentText, employmentToday, hoursOfDay, scheduleOn, weekdayNames } from "../../utils/schedule";
 import type { CalendarEvent } from "../../types/calendarEvent";
 
 type Props = {
@@ -72,7 +72,7 @@ export function EmployeeInfo({ employees, requests, onAddSchedule, events }: Pro
             <Link to="/accounting/employees" className="font-semibold hover:text-orange">← All employees</Link>
 
             <h1 className="text-3xl mt-4">{employee.name}</h1>
-            <p className="text-slate mb-6">{employee.email} - {employmentText(currentDays)}</p>
+            <p className="text-slate mb-6">{employee.email} - {employmentToday(employee)}</p>
 
             {/* Balances (mock data – the same for everyone until the backend calculates them) */}
             <div className="grid grid-cols-2 gap-6 mb-8">

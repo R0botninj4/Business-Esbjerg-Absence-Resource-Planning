@@ -21,6 +21,8 @@ import { testEvents } from "./mockdata/testEvents";
 import { testRules } from "./mockdata/testRules";
 import type { CalendarEvent } from "./types/calendarEvent";
 import type { Rule, RuleVersion } from "./types/rule";
+import { testUsers } from "./mockdata/testUsers";
+import type { UserAccount } from "./types/userAccount";
 import "./index.css";
 
 const userLinks: NavItem[] = [
@@ -50,6 +52,7 @@ export function App() {
     const [employees, setEmployees] = useState<Employee[]>(testEmployees);
     const [events, setEvents] = useState<CalendarEvent[]>(testEvents);
     const [rules, setRules] = useState<Rule[]>(testRules);
+    const [users, setUsers] = useState<UserAccount[]>(testUsers);
 
     function addRequest(request: HolidayRequest) {
         setRequests([...requests, request]);
@@ -93,6 +96,23 @@ export function App() {
     function decideRequest(id: number, status: RequestStatus, comment: string) {
         setRequests(requests.map(r => (r.id === id ? { ...r, status: status, comment: comment } : r)));
     }
+    
+    function createEmployee(employee: Omit<Employee, "id">) {
+        const newUserId = Math.max(0, ...users.map(u => u.id)) + 1;
+        const newEmployeeId = Math.max(0, ...employees.map(e => e.id)) + 1;
+        setUsers([...users, { id: newUserId, email: employee.email, role: "Employee", isActive: true }]);
+        setEmployees([...employees, { ...employee, id: newEmployeeId }]);
+    }
+    
+    function changeEmail(id: number, email: string) {
+        const oldEmail = users.find(u => u.id === id)?.email;
+        setUsers(users.map(u => (u.id === id ? { ...u, email: email } : u)));
+        setEmployees(employees.map(e => (e.email === oldEmail ? { ...e, email: email } : e)));
+    }
+    
+    function setUserActive(id: number, isActive: boolean) {
+        setUsers(users.map(u => (u.id === id ? { ...u, isActive: isActive } : u)));
+    }
 
     return (
         <BrowserRouter>
@@ -110,7 +130,7 @@ export function App() {
                     <Route path="/admin" element={<RequireRole role="Admin"><Layout links={adminLinks} /></RequireRole>}>
                         <Route index element={<AdminMain rules={rules} onAddVersion={addRuleVersion} />} />
                         <Route path="calendar" element={<AdminCalendar events={events} onAdd={addEvent} onDelete={deleteEvent} />} />
-                        <Route path="users" element={<Users />} />
+                        <Route path="users" element={<Users users={users} employees={employees} onCreateEmployee={createEmployee} onChangeEmail={changeEmail} onSetActive={setUserActive} />} />
                     </Route>
 
                     <Route path="/accounting" element={<RequireRole role="Accounting"><Layout links={accountingLinks} /></RequireRole>}>

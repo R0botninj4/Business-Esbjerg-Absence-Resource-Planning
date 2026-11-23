@@ -1,7 +1,7 @@
 ﻿import { useState, type SubmitEvent } from "react";
 import type { SchedulePeriod, WorkDay } from "../types/employee";
-import { employmentText, weekdayNames } from "../utils/schedule";
-import { TimeSelect } from "./timeSelect";
+import { employmentText } from "../utils/schedule";
+import { WeekScheduleInput } from "./weekScheduleInput";
 
 type Props = {
     startDays: WorkDay[]; // the current schedule, used as a starting point
@@ -14,13 +14,6 @@ export function ScheduleForm({ startDays, onSave, onClose }: Props) {
     const [days, setDays] = useState<WorkDay[]>(startDays);
     const [validFrom, setValidFrom] = useState("");
     const [error, setError] = useState("");
-
-    // Change one day in the list (React needs a new list, so we copy it first)
-    function updateDay(index: number, day: WorkDay) {
-        const copy = [...days];
-        copy[index] = day;
-        setDays(copy);
-    }
 
     function handleSubmit(e: SubmitEvent) {
         e.preventDefault();
@@ -54,29 +47,8 @@ export function ScheduleForm({ startDays, onSave, onClose }: Props) {
                 />
             </label>
 
-            <div className="mt-4 space-y-2">
-                {days.map((day, index) => (
-                    <div key={index} className="flex items-center gap-4">
-                        <span className="w-28 font-semibold">{weekdayNames[index]}</span>
-
-                        <label className="flex items-center gap-2">
-                            <input
-                                type="checkbox"
-                                checked={day !== null}
-                                onChange={e => updateDay(index, e.target.checked ? { from: "08:00", to: "15:30" } : null)}
-                            />
-                            Working
-                        </label>
-
-                        {day && (
-                            <>
-                                <TimeSelect value={day.from} onChange={value => updateDay(index, { from: value, to: day.to })} />
-                                –
-                                <TimeSelect value={day.to} onChange={value => updateDay(index, { from: day.from, to: value })} />
-                            </>
-                        )}
-                    </div>
-                ))}
+            <div className="mt-4">
+                <WeekScheduleInput days={days} onChange={setDays} />
             </div>
 
             <p className="mt-3 text-slate">New schedule: {employmentText(days)}</p>
