@@ -28,7 +28,7 @@ export function Layout({ links }: Props) {
                     <NavLink
                         key={link.to}
                         to={link.to}
-                        end
+                        end={link === links[0]}
                         className={({ isActive }) =>
                             "pb-2 font-semibold " +
                             (isActive ? "text-orange border-b-4 border-orange -mb-1" : "hover:text-orange")
