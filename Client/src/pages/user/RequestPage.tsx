@@ -1,15 +1,16 @@
 import { useState } from "react";
 import { Calendar } from "../../components/calendar";
 import { RequestCard } from "../../components/requestCard";
-import { testEvents } from "../../mockdata/testEvents";
 import type { HolidayRequest, HolidayType } from "../../types/holidayRequest";
 import { formatDate, holidayTypeName } from "../../utils/format";
 import { testCurrentEmployee } from "../../mockdata/testRequest";
+import type { CalendarEvent } from "../../types/calendarEvent";
 
 type Props = {
     requests: HolidayRequest[];
     onAdd: (request: HolidayRequest) => void;
     onCancel: (id: number) => void;
+    events: CalendarEvent[];
 };
 
 function toInputValue(date: Date | null) {
@@ -23,7 +24,7 @@ function fromInputValue(value: string) {
     return value ? new Date(value + "T00:00") : null;
 }
 
-export function RequestPage({ requests, onAdd, onCancel }: Props) {
+export function RequestPage({ requests, onAdd, onCancel, events }: Props) {
     const [start, setStart] = useState<Date | null>(null);
     const [end, setEnd] = useState<Date | null>(null);
     const [holidayType, setHolidayType] = useState<HolidayType>("weeks1to5");
@@ -97,7 +98,7 @@ export function RequestPage({ requests, onAdd, onCancel }: Props) {
                         start={start}
                         end={end}
                         onSelect={handleSelect}
-                        events={testEvents}
+                        events={events}
                         requested={bookedRequests}
                     />
 

@@ -1,17 +1,18 @@
 import { useState } from "react";
 import { WorkSchedule } from "../../components/workSchedule";
 import type { Employee } from "../../types/employee";
-import { testEvents } from "../../mockdata/testEvents";
 import type { HolidayRequest, RequestStatus } from "../../types/holidayRequest";
 import { formatDate, holidayTypeName } from "../../utils/format";
+import type { CalendarEvent } from "../../types/calendarEvent";
 
 type Props = {
     requests: HolidayRequest[];
     onDecide: (id: number, status: RequestStatus, comment: string) => void;
     employees: Employee[];
+    events: CalendarEvent[];
 };
 
-export function AccountingMain({ requests, onDecide, employees }: Props) {
+export function AccountingMain({ requests, onDecide, employees, events }: Props) {
     const [selectedId, setSelectedId] = useState<number | null>(null);
     const [comment, setComment] = useState("");
     const [error, setError] = useState("");
@@ -117,7 +118,7 @@ export function AccountingMain({ requests, onDecide, employees }: Props) {
                         </div>
                     </div>
 
-                    <WorkSchedule employees={employees} requests={requests} events={testEvents} selected={selected} />
+                    <WorkSchedule employees={employees} requests={requests} events={events} selected={selected} />
                 </div>
             </div>
         </div>

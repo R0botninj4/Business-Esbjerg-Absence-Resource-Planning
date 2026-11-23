@@ -6,20 +6,21 @@ import { InfoBox } from "../../components/infoBox";
 import { RequestRow } from "../../components/requestRow";
 import { ScheduleForm } from "../../components/scheduleForm";
 import { testBalances } from "../../mockdata/testBalances";
-import { testEvents } from "../../mockdata/testEvents";
 import type { Employee, SchedulePeriod } from "../../types/employee";
 import type { HolidayRequest } from "../../types/holidayRequest";
 import { formatDate } from "../../utils/format";
 import { weekdayIndex } from "../../utils/dates";
 import { employmentText, hoursOfDay, scheduleOn, weekdayNames } from "../../utils/schedule";
+import type { CalendarEvent } from "../../types/calendarEvent";
 
 type Props = {
     employees: Employee[];
     requests: HolidayRequest[];
     onAddSchedule: (employeeId: number, period: SchedulePeriod) => void;
+    events: CalendarEvent[];
 };
 
-export function EmployeeInfo({ employees, requests, onAddSchedule }: Props) {
+export function EmployeeInfo({ employees, requests, onAddSchedule, events }: Props) {
     const { id } = useParams(); // the number in the URL, e.g. /accounting/employees/3
     const [editing, setEditing] = useState(false);
 
@@ -51,7 +52,7 @@ export function EmployeeInfo({ employees, requests, onAddSchedule }: Props) {
     function workingHours(day: Date) {
         const time = day.getTime();
         const index = weekdayIndex(day);
-        const isDayOff = testEvents.some(e => e.type !== "info" && e.date.getTime() === time);
+        const isDayOff = events.some(e => e.type !== "info" && e.date.getTime() === time);
         const isHoliday = booked.some(r => time >= r.start.getTime() && time <= r.end.getTime());
         if (index > 4 || isDayOff || isHoliday) return "";
 
@@ -124,7 +125,7 @@ export function EmployeeInfo({ employees, requests, onAddSchedule }: Props) {
             <div className="grid grid-cols-5 gap-8 mb-8 items-start">
                 <div className="col-span-3 bg-white border border-line rounded p-6">
                     <h2 className="text-2xl mb-4">Calendar</h2>
-                    <Calendar start={null} end={null} onSelect={() => {}} events={testEvents} requested={booked} dayText={workingHours} />
+                    <Calendar start={null} end={null} onSelect={() => {}} events={events} requested={booked} dayText={workingHours} />
                     <div className="flex gap-5 mt-4 text-sm">
                         <span className="flex items-center gap-2"><span className="w-4 h-4 rounded bg-gold"></span>Pending</span>
                         <span className="flex items-center gap-2"><span className="w-4 h-4 rounded bg-navy"></span>Approved</span>

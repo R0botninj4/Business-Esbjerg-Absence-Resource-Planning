@@ -17,6 +17,10 @@ import type { HolidayRequest, RequestStatus } from "./types/holidayRequest";
 import { WorkSchedulePage } from "./pages/accounting/WorkSchedulePage";
 import type { Employee, SchedulePeriod } from "./types/employee";
 import { testEmployees } from "./mockdata/testEmployees";
+import { testEvents } from "./mockdata/testEvents";
+import { testRules } from "./mockdata/testRules";
+import type { CalendarEvent } from "./types/calendarEvent";
+import type { Rule, RuleVersion } from "./types/rule";
 import "./index.css";
 
 const userLinks: NavItem[] = [
@@ -32,7 +36,7 @@ const accountingLinks: NavItem[] = [
 ];
 
 const adminLinks: NavItem[] = [
-    { to: "/admin", label: "Overview" },
+    { to: "/admin", label: "Rules" },
     { to: "/admin/calendar", label: "Calendar" },
     { to: "/admin/users", label: "Users" },
 ];
@@ -44,6 +48,8 @@ export function App() {
     const [requests, setRequests] = useState<HolidayRequest[]>(testRequests);
     const myRequests = requests.filter(r => r.employeeName === testCurrentEmployee);
     const [employees, setEmployees] = useState<Employee[]>(testEmployees);
+    const [events, setEvents] = useState<CalendarEvent[]>(testEvents);
+    const [rules, setRules] = useState<Rule[]>(testRules);
 
     function addRequest(request: HolidayRequest) {
         setRequests([...requests, request]);
@@ -68,6 +74,22 @@ export function App() {
         }));
     }
     
+    function addEvent(event: CalendarEvent) {
+        setEvents([...events, event]);
+    }
+
+    function deleteEvent(event: CalendarEvent) {
+        setEvents(events.filter(e => e !== event));
+    }
+    
+    function addRuleVersion(ruleId: string, version: RuleVersion) {
+        setRules(rules.map(rule => {
+            if (rule.id !== ruleId) return rule;
+            const versions = [...rule.versions, version].sort((a, b) => a.effectiveFrom.getTime() - b.effectiveFrom.getTime());
+            return { ...rule, versions: versions };
+        }));
+    }
+    
     function decideRequest(id: number, status: RequestStatus, comment: string) {
         setRequests(requests.map(r => (r.id === id ? { ...r, status: status, comment: comment } : r)));
     }
@@ -80,22 +102,22 @@ export function App() {
                     <Route path="/login" element={<LoginPage />} />
 
                     <Route path="/user" element={<Layout links={userLinks} />}>
-                        <Route index element={<UserMain requests={myRequests} onCancel={cancelRequest} />} />
-                        <Route path="request" element={<RequestPage requests={myRequests} onAdd={addRequest} onCancel={removeRequest} />} />
+                        <Route index element={<UserMain requests={myRequests} onCancel={cancelRequest} events={events} />} />
+                        <Route path="request" element={<RequestPage requests={myRequests} onAdd={addRequest} onCancel={removeRequest} events={events} />} />
                         <Route path="requests" element={<UserRequests requests={myRequests} onCancel={cancelRequest} />} />
                     </Route>
 
                     <Route path="/admin" element={<RequireRole role="Admin"><Layout links={adminLinks} /></RequireRole>}>
-                        <Route index element={<AdminMain />} />
-                        <Route path="calendar" element={<AdminCalendar />} />
+                        <Route index element={<AdminMain rules={rules} onAddVersion={addRuleVersion} />} />
+                        <Route path="calendar" element={<AdminCalendar events={events} onAdd={addEvent} onDelete={deleteEvent} />} />
                         <Route path="users" element={<Users />} />
                     </Route>
 
                     <Route path="/accounting" element={<RequireRole role="Accounting"><Layout links={accountingLinks} /></RequireRole>}>
-                        <Route index element={<AccountingMain requests={requests} employees={employees} onDecide={decideRequest} />} />
+                        <Route index element={<AccountingMain requests={requests} employees={employees} onDecide={decideRequest} events={events} />} />
                         <Route path="employees" element={<EmployeeList employees={employees} requests={requests} />} />
-                        <Route path="schedule" element={<WorkSchedulePage requests={requests} employees={employees} />} />
-                        <Route path="employees/:id" element={<EmployeeInfo employees={employees} requests={requests} onAddSchedule={addSchedulePeriod} />} />
+                        <Route path="schedule" element={<WorkSchedulePage requests={requests} employees={employees} events={events} />} />
+                        <Route path="employees/:id" element={<EmployeeInfo employees={employees} requests={requests} onAddSchedule={addSchedulePeriod} events={events} />} />
                     </Route>
                 </Routes>
             </AuthProvider>

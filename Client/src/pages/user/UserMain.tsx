@@ -3,24 +3,26 @@ import { BalanceCard } from "../../components/balanceCard";
 import { InfoBox } from "../../components/infoBox";
 import { RequestCard } from "../../components/requestCard";
 import { testBalances } from "../../mockdata/testBalances";
-import { testEvents } from "../../mockdata/testEvents";
 import { testMainHoliday } from "../../mockdata/testMainHoliday";
 import type { HolidayRequest } from "../../types/holidayRequest";
 import { formatDate } from "../../utils/format";
+import type { CalendarEvent } from "../../types/calendarEvent";
 
 type Props = {
     requests: HolidayRequest[];
     onCancel: (id: number) => void;
+    events: CalendarEvent[];
 };
 
-export function UserMain({ requests, onCancel }: Props) {
+export function UserMain({ requests, onCancel, events }: Props) {
     const latest = [...requests]
         .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
         .slice(0, 5);
     
     const today = new Date();
-    const comingDaysOff = testEvents
+    const comingDaysOff = events
         .filter(event => event.type !== "info" && event.date >= today)
+        .sort((a, b) => a.date.getTime() - b.date.getTime())
         .slice(0, 5);
     
     const nextYear = today.getFullYear() + 1;
