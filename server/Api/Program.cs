@@ -18,6 +18,8 @@ builder.Services.AddScoped<HolidayHoursService>();
 builder.Services.AddScoped<CalendarService>();
 builder.Services.AddScoped<HolidayRuleService>();
 builder.Services.AddScoped<HolidayAccrualService>();
+builder.Services.AddScoped<HolidayBalanceService>();
+builder.Services.AddScoped<HolidayAdjustmentService>();
 builder.Services.AddScoped<EmployeeService>();
 builder.Services.AddOpenApi();
 if (builder.Environment.IsDevelopment())
@@ -93,6 +95,8 @@ if (app.Environment.IsDevelopment())
 
     db.CreateTable<HolidayAccrualMonth>(tableOptions: TableOptions.CreateIfNotExists);
     db.CreateTable<HolidayAccrualDay>(tableOptions: TableOptions.CreateIfNotExists);
+    db.CreateTable<HolidayBalanceAdjustment>(tableOptions: TableOptions.CreateIfNotExists);
+    db.Execute("CREATE UNIQUE INDEX IF NOT EXISTS UX_BalanceAdjustments_Operation ON HolidayBalanceAdjustments (OperationId)");
     db.Execute("CREATE UNIQUE INDEX IF NOT EXISTS UX_AccrualMonths_User_Month ON HolidayAccrualMonths (UserId, Month)");
     db.Execute("CREATE UNIQUE INDEX IF NOT EXISTS UX_AccrualDays_Month_Date_Account ON HolidayAccrualDays (AccrualMonthId, Date, Account)");
     db.CreateTable<HolidayRulePeriodSettings>(tableOptions: TableOptions.CreateIfNotExists);
