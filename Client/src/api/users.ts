@@ -69,7 +69,7 @@ export function userError(error: unknown): string {
     // Den fælles API-klient lægger serverens JSON-fejl i feltet error.
     const response = error as { status?: number; error?: { message?: string; errors?: Record<string, string[]> } };
     if (response?.status === 401) return "Your session has expired. Please log in again.";
-    if (response?.status === 403) return "Only the system owner can manage users.";
+    if (response?.status === 403) return "You do not have permission to perform this action.";
     if (response?.error?.message) return response.error.message;
     if (response?.error?.errors) return Object.values(response.error.errors).flat().join(" ");
     return "The change could not be completed. Please check the connection and try again.";
