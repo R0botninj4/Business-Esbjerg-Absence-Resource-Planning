@@ -92,11 +92,9 @@ export function Calendar({ start, end, onSelect, events = [], requested = [], da
                         >
                             <span>{day.getDate()}</span>
                             {dayText && <span className="text-xs opacity-70">{dayText(day)}</span>}
-                            
-                            <span>{day.getDate()}</span>
                             {eventsOn(day).map(event => (
                                 <span key={event.title} title={event.title} className={"text-xs font-semibold truncate " + eventColors[event.type]}>
-                                    {event.title}
+                                    {event.title} 
                                 </span>
                             ))}
                         </button>
