@@ -2,7 +2,7 @@ import { Link } from "react-router";
 import type { Employee } from "../../types/employee";
 import type { HolidayRequest } from "../../types/holidayRequest";
 import { formatDate } from "../../utils/format";
-import { employmentText, scheduleOn } from "../../utils/schedule";
+import { employmentToday } from "../../utils/schedule";
 
 type Props = {
     employees: Employee[];
@@ -54,7 +54,7 @@ export function EmployeeList({ employees, requests }: Props) {
                                 <span className="block text-sm text-slate">{employee.email}</span>
                             </span>
 
-                            <span>{employmentText(scheduleOn(employee, today))}</span>
+                            <span>{employmentToday(employee)}</span>
 
                             <span>{holiday ? formatDate(holiday.start) + " – " + formatDate(holiday.end) : "–"}</span>
 
