@@ -22,5 +22,6 @@ public class MyDatabaseConnection : DataConnection
     public ITable<HolidayRule> HolidayRules => this.GetTable<HolidayRule>();
     public ITable<HolidayAccrualMonth> HolidayAccrualMonths => this.GetTable<HolidayAccrualMonth>();
     public ITable<HolidayAccrualDay> HolidayAccrualDays => this.GetTable<HolidayAccrualDay>();
+    public ITable<HolidayBalanceAdjustment> HolidayBalanceAdjustments => this.GetTable<HolidayBalanceAdjustment>();
     public ITable<HolidayRulePeriodSettings> HolidayRulePeriods => this.GetTable<HolidayRulePeriodSettings>();
 }

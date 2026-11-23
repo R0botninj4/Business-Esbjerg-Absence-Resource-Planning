@@ -18,6 +18,8 @@ builder.Services.AddScoped<HolidayHoursService>();
 builder.Services.AddScoped<CalendarService>();
 builder.Services.AddScoped<HolidayRuleService>();
 builder.Services.AddScoped<HolidayAccrualService>();
+builder.Services.AddScoped<HolidayBalanceService>();
+builder.Services.AddScoped<HolidayAdjustmentService>();
 builder.Services.AddScoped<EmployeeService>();
 builder.Services.AddOpenApi();
 builder.Services.AddScoped<MyDatabaseConnection>(services =>
@@ -81,6 +83,7 @@ using (var scope = app.Services.CreateScope())
 if (app.Environment.IsDevelopment())
 {
     using var scope = app.Services.CreateScope();
+
     var users = scope.ServiceProvider.GetRequiredService<UserService>();
 
     SeedUser("Employee");

@@ -1,4 +1,4 @@
-﻿using Infra;
+using Infra;
 using LinqToDB;
 using LinqToDB.Data;
 
@@ -25,15 +25,16 @@ public class MigrationTests
                 new[]
                 {
                     "calendar_days", "employments", "holiday_accrual_days", "holiday_accrual_months",
-                    "holiday_rule_periods", "holiday_rules", "users", "work_schedule_days", "work_schedules"
+                    "holiday_balance_adjustments", "holiday_rule_periods", "holiday_rules", "users", "work_schedule_days", "work_schedules"
                 },
                 tables);
 
             var versions = db.Query<string>("SELECT version FROM schema_migrations").ToList();
             Assert.Contains("001_initial_schema", versions);
-            Assert.Contains("002_calendar_days", versions);
+            Assert.Contains("002_calender_days", versions);
             Assert.Contains("003_holiday_rules", versions);
-            Assert.Contains("004_holiday_accruals", versions);
+            Assert.Contains("004_holiday_accrulas", versions);
+            Assert.Contains("005_holiday_balance_adjustments", versions);
         }
         finally
         {
