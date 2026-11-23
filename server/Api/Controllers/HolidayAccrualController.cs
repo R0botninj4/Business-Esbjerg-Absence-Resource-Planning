@@ -1,6 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Data.Sqlite;
+using Npgsql;
 using Service;
 using System.Security.Claims;
 
@@ -39,8 +39,7 @@ public class HolidayAccrualController : ControllerBase
             return BadRequest(new { message = exception.Message });
         }
     }
-
-    // Dette er forventet optjening. Godkendt ferie er ikke trukket fra.
+    
     [HttpGet("forecast")]
     public ActionResult<HolidayAccrualResult> Forecast(Guid userId, [FromQuery] DateOnly date)
     {
@@ -78,14 +77,13 @@ public class HolidayAccrualController : ControllerBase
 
         try
         {
-            // Gentages samme kald, returnerer servicen den allerede gemte optjening.
             return Ok(accrual.Post(userId, year, month, postedBy));
         }
         catch (ArgumentException exception)
         {
             return BadRequest(new { message = exception.Message });
         }
-        catch (SqliteException exception) when (exception.SqliteExtendedErrorCode == 2067)
+        catch (PostgresException exception) when (exception.SqlState == PostgresErrorCodes.UniqueViolation)
         {
             return Conflict(new { message = "Optjeningen blev bogført samtidig. Hent måneden igen." });
         }
