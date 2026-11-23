@@ -2,21 +2,21 @@ using LinqToDB.Mapping;
 
 namespace Infra;
 
-[Table("HolidayAccrualMonths")]
+[Table("holiday_accrual_months")]
 public class HolidayAccrualMonth
 {
-    [PrimaryKey, Column]
+    [PrimaryKey, Column("id")]
     public Guid Id { get; set; }
 
-    [Column, NotNull]
+    [Column("user_id"), NotNull]
     public Guid UserId { get; set; }
 
-    [Column, NotNull]
+    [Column("month"), NotNull]
     public DateOnly Month { get; set; }
 
-    [Column, NotNull]
+    [Column("posted_at"), NotNull]
     public DateTime PostedAt { get; set; }
 
-    [Column, NotNull]
+    [Column("posted_by"), NotNull]
     public Guid PostedBy { get; set; }
 }

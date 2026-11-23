@@ -2,21 +2,21 @@ using LinqToDB.Mapping;
 
 namespace Infra;
 
-[Table("Users")]
+[Table("users")]
 public class User
 {
-    [PrimaryKey, Column]
+    [PrimaryKey, Column("id")]
     public Guid Id { get; set; }
 
-    [Column, NotNull]
+    [Column("email"), NotNull]
     public string Email { get; set; } = "";
 
-    [Column, NotNull]
+    [Column("password_hash"), NotNull]
     public string PasswordHash { get; set; } = "";
 
-    [Column, NotNull]
+    [Column("role"), NotNull]
     public string Role { get; set; } = "Employee";
 
-    [Column, NotNull]
+    [Column("is_active"), NotNull]
     public bool IsActive { get; set; } = true;
 }

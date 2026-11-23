@@ -2,49 +2,48 @@ using LinqToDB.Mapping;
 
 namespace Infra;
 
-[Table("HolidayAccrualDays")]
+[Table("holiday_accrual_days")]
 public class HolidayAccrualDay
 {
-    [PrimaryKey, Column]
+    [PrimaryKey, Column("id")]
     public Guid Id { get; set; }
 
-    [Column, NotNull]
+    [Column("accrual_month_id"), NotNull]
     public Guid AccrualMonthId { get; set; }
 
-    [Column, NotNull]
+    [Column("employment_id"), NotNull]
     public Guid EmploymentId { get; set; }
 
-    [Column, NotNull]
+    [Column("date"), NotNull]
     public DateOnly Date { get; set; }
 
-    [Column, NotNull]
+    [Column("account"), NotNull]
     public HolidayAccount Account { get; set; }
 
-    [Column, NotNull]
+    [Column("hours"), NotNull]
     public decimal Hours { get; set; }
 
-    [Column, NotNull]
-    // Bevar det præcise tal, så afrunding kan føres videre til næste måned.
+    [Column("raw_hours"), NotNull]
     public decimal RawHours { get; set; }
 
-    [Column, NotNull]
+    [Column("raw_days"), NotNull]
     public decimal RawDays { get; set; }
 
-    [Column, NotNull]
+    [Column("holiday_rule_id"), NotNull]
     public Guid HolidayRuleId { get; set; }
 
-    [Column, NotNull]
+    [Column("work_schedule_id"), NotNull]
     public Guid WorkScheduleId { get; set; }
 
-    [Column, NotNull]
+    [Column("earning_start"), NotNull]
     public DateOnly EarningStart { get; set; }
 
-    [Column, NotNull]
+    [Column("earning_end"), NotNull]
     public DateOnly EarningEnd { get; set; }
 
-    [Column, NotNull]
+    [Column("usage_start"), NotNull]
     public DateOnly UsageStart { get; set; }
 
-    [Column, NotNull]
+    [Column("usage_end"), NotNull]
     public DateOnly UsageEnd { get; set; }
 }

@@ -1,4 +1,4 @@
-using System.Net;
+﻿using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
 using Infra;
@@ -19,12 +19,11 @@ public class LoginTests
     {
         const string email = "employee@businessesbjerg.com";
         const string password = "LocalTestPassword123!";
-        // Hver test får sin egen database, så testene ikke påvirker hinanden.
-        var databasePath = Path.Combine(Path.GetTempPath(), $"{Guid.NewGuid():N}.db");
+        var schema = TestDatabase.CreateSchema();
 
         try
         {
-            using var factory = CreateFactory(databasePath);
+            using var factory = CreateFactory(schema);
             using var client = CreateClient(factory);
 
             using (var scope = factory.Services.CreateScope())
@@ -48,8 +47,7 @@ public class LoginTests
         }
         finally
         {
-            // Ryd testens database op bagefter.
-            File.Delete(databasePath);
+            TestDatabase.DropSchema(schema);
         }
     }
 
@@ -57,11 +55,11 @@ public class LoginTests
     public async Task Login_WithWrongPassword_ReturnsUnauthorized()
     {
         const string email = "wrong-password@businessesbjerg.com";
-        var databasePath = Path.Combine(Path.GetTempPath(), $"{Guid.NewGuid():N}.db");
+        var schema = TestDatabase.CreateSchema();
 
         try
         {
-            using var factory = CreateFactory(databasePath);
+            using var factory = CreateFactory(schema);
             using var client = CreateClient(factory);
 
             using (var scope = factory.Services.CreateScope())
@@ -79,7 +77,7 @@ public class LoginTests
         }
         finally
         {
-            File.Delete(databasePath);
+            TestDatabase.DropSchema(schema);
         }
     }
 
@@ -88,11 +86,11 @@ public class LoginTests
     {
         const string email = "logout@businessesbjerg.com";
         const string password = "LocalTestPassword123!";
-        var databasePath = Path.Combine(Path.GetTempPath(), $"{Guid.NewGuid():N}.db");
+        var schema = TestDatabase.CreateSchema();
 
         try
         {
-            using var factory = CreateFactory(databasePath);
+            using var factory = CreateFactory(schema);
             using var client = CreateClient(factory);
 
             using (var scope = factory.Services.CreateScope())
@@ -112,7 +110,7 @@ public class LoginTests
         }
         finally
         {
-            File.Delete(databasePath);
+            TestDatabase.DropSchema(schema);
         }
     }
 
@@ -122,12 +120,11 @@ public class LoginTests
         const string adminEmail = "admin-crud@businessesbjerg.com";
         const string email = "employee-crud@businessesbjerg.com";
         const string password = "CrudTestPassword123!";
-        // Hver test får sin egen database, så testene ikke påvirker hinanden.
-        var databasePath = Path.Combine(Path.GetTempPath(), $"{Guid.NewGuid():N}.db");
+        var schema = TestDatabase.CreateSchema();
 
         try
         {
-            using var factory = CreateFactory(databasePath);
+            using var factory = CreateFactory(schema);
             using var admin = CreateClient(factory);
             using var employee = CreateClient(factory);
 
@@ -202,8 +199,7 @@ public class LoginTests
         }
         finally
         {
-            // Ryd testens database op bagefter.
-            File.Delete(databasePath);
+            TestDatabase.DropSchema(schema);
         }
     }
 
@@ -212,12 +208,11 @@ public class LoginTests
     {
         const string adminEmail = "employment-admin@businessesbjerg.com";
         const string password = "EmploymentTestPassword123!";
-        // Hver test får sin egen database, så testene ikke påvirker hinanden.
-        var databasePath = Path.Combine(Path.GetTempPath(), $"{Guid.NewGuid():N}.db");
+        var schema = TestDatabase.CreateSchema();
 
         try
         {
-            using var factory = CreateFactory(databasePath);
+            using var factory = CreateFactory(schema);
             using var client = CreateClient(factory);
 
             Guid employeeId;
@@ -270,8 +265,7 @@ public class LoginTests
         }
         finally
         {
-            // Ryd testens database op bagefter.
-            File.Delete(databasePath);
+            TestDatabase.DropSchema(schema);
         }
     }
 
@@ -280,12 +274,11 @@ public class LoginTests
     {
         const string email = "schedule-admin@businessesbjerg.com";
         const string password = "ScheduleTestPassword123!";
-        // Hver test får sin egen database, så testene ikke påvirker hinanden.
-        var databasePath = Path.Combine(Path.GetTempPath(), $"{Guid.NewGuid():N}.db");
+        var schema = TestDatabase.CreateSchema();
 
         try
         {
-            using var factory = CreateFactory(databasePath);
+            using var factory = CreateFactory(schema);
             using var client = CreateClient(factory);
             Guid employmentId;
             Guid scheduleId;
@@ -351,14 +344,12 @@ public class LoginTests
         }
         finally
         {
-            // Ryd testens database op bagefter.
-            File.Delete(databasePath);
+            TestDatabase.DropSchema(schema);
         }
     }
 
-    internal static WebApplicationFactory<Program> CreateFactory(string databasePath)
+    internal static WebApplicationFactory<Program> CreateFactory(string schema)
     {
-        // Start API'et i testen, og brug testens egen SQLite-fil.
         return new WebApplicationFactory<Program>().WithWebHostBuilder(builder =>
         {
             builder.UseEnvironment("Development");
@@ -366,7 +357,7 @@ public class LoginTests
             {
                 services.RemoveAll<MyDatabaseConnection>();
                 var options = new DataOptions()
-                    .UseSQLite($"Data Source={databasePath};Pooling=False");
+                    .UsePostgreSQL(TestDatabase.ConnectionString(schema));
                 services.AddScoped(_ => new MyDatabaseConnection(
                     new DataOptions<MyDatabaseConnection>(options)));
             });
@@ -375,7 +366,6 @@ public class LoginTests
 
     internal static HttpClient CreateClient(WebApplicationFactory<Program> factory)
     {
-        // Denne klient sender HTTP-kald og husker login-cookien.
         return factory.CreateClient(new WebApplicationFactoryClientOptions
         {
             BaseAddress = new Uri("https://localhost"),
