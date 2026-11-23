@@ -2,26 +2,24 @@
 
 namespace Infra;
 
-[Table("WorkScheduleDays")]
+[Table("work_schedule_days")]
 public class WorkScheduleDay
 {
-    [PrimaryKey, Column]
+    [PrimaryKey, Column("id")]
     public Guid Id { get; set; }
 
-    [Column, NotNull]
-    // Forbinder dagen med dens ugeplan.
+    [Column("work_schedule_id"), NotNull]
     public Guid WorkScheduleId { get; set; }
 
-    [Column, NotNull]
+    [Column("day"), NotNull]
     public DayOfWeek Day { get; set; }
 
-    [Column, NotNull]
+    [Column("is_day_off"), NotNull]
     public bool IsDayOff { get; set; }
 
-    [Column, Nullable]
-    // På en fridag er start- og sluttid tomme.
+    [Column("start_time"), Nullable]
     public TimeOnly? StartTime { get; set; }
 
-    [Column, Nullable]
+    [Column("end_time"), Nullable]
     public TimeOnly? EndTime { get; set; }
 }

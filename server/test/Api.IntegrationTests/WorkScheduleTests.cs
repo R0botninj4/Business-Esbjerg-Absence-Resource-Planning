@@ -1,4 +1,4 @@
-using System.Net;
+﻿using System.Net;
 using System.Net.Http.Json;
 using Infra;
 using LinqToDB;
@@ -15,11 +15,10 @@ public class WorkScheduleTests
     [Fact]
     public async Task PartTime_RequiresValidDays_AndCreatesPlan()
     {
-        // Hver test får sin egen database, så testene ikke påvirker hinanden.
-        var databasePath = Path.Combine(Path.GetTempPath(), $"{Guid.NewGuid():N}.db");
+        var schema = TestDatabase.CreateSchema();
         try
         {
-            using var factory = LoginTests.CreateFactory(databasePath);
+            using var factory = LoginTests.CreateFactory(schema);
             using var client = LoginTests.CreateClient(factory);
             Guid employeeId;
             using (var scope = factory.Services.CreateScope())
@@ -59,19 +58,17 @@ public class WorkScheduleTests
         }
         finally
         {
-            // Ryd testens database op bagefter.
-            File.Delete(databasePath);
+            TestDatabase.DropSchema(schema);
         }
     }
 
     [Fact]
     public async Task Employee_CanReadOwnPlan()
     {
-        // Hver test får sin egen database, så testene ikke påvirker hinanden.
-        var databasePath = Path.Combine(Path.GetTempPath(), $"{Guid.NewGuid():N}.db");
+        var schema = TestDatabase.CreateSchema();
         try
         {
-            using var factory = LoginTests.CreateFactory(databasePath);
+            using var factory = LoginTests.CreateFactory(schema);
             using var client = LoginTests.CreateClient(factory);
             Guid ownerId;
             Guid employmentId;
@@ -118,19 +115,17 @@ public class WorkScheduleTests
         }
         finally
         {
-            // Ryd testens database op bagefter.
-            File.Delete(databasePath);
+            TestDatabase.DropSchema(schema);
         }
     }
 
     [Fact]
     public async Task Employee_CannotReadAnotherEmployeesPlan()
     {
-        // Hver test får sin egen database, så testene ikke påvirker hinanden.
-        var databasePath = Path.Combine(Path.GetTempPath(), $"{Guid.NewGuid():N}.db");
+        var schema = TestDatabase.CreateSchema();
         try
         {
-            using var factory = LoginTests.CreateFactory(databasePath);
+            using var factory = LoginTests.CreateFactory(schema);
             using var client = LoginTests.CreateClient(factory);
             Guid ownerId;
             Guid employmentId;
@@ -177,19 +172,17 @@ public class WorkScheduleTests
         }
         finally
         {
-            // Ryd testens database op bagefter.
-            File.Delete(databasePath);
+            TestDatabase.DropSchema(schema);
         }
     }
 
     [Fact]
     public async Task Accounting_CanReadEmployeesPlan()
     {
-        // Hver test får sin egen database, så testene ikke påvirker hinanden.
-        var databasePath = Path.Combine(Path.GetTempPath(), $"{Guid.NewGuid():N}.db");
+        var schema = TestDatabase.CreateSchema();
         try
         {
-            using var factory = LoginTests.CreateFactory(databasePath);
+            using var factory = LoginTests.CreateFactory(schema);
             using var client = LoginTests.CreateClient(factory);
             Guid ownerId;
             Guid employmentId;
@@ -226,19 +219,17 @@ public class WorkScheduleTests
         }
         finally
         {
-            // Ryd testens database op bagefter.
-            File.Delete(databasePath);
+            TestDatabase.DropSchema(schema);
         }
     }
 
     [Fact]
     public async Task Admin_CanChangePlanAndKeepHistory()
     {
-        // Hver test får sin egen database, så testene ikke påvirker hinanden.
-        var databasePath = Path.Combine(Path.GetTempPath(), $"{Guid.NewGuid():N}.db");
+        var schema = TestDatabase.CreateSchema();
         try
         {
-            using var factory = LoginTests.CreateFactory(databasePath);
+            using var factory = LoginTests.CreateFactory(schema);
             using var client = LoginTests.CreateClient(factory);
             Guid employeeId;
             Guid employmentId;
@@ -304,19 +295,17 @@ public class WorkScheduleTests
         }
         finally
         {
-            // Ryd testens database op bagefter.
-            File.Delete(databasePath);
+            TestDatabase.DropSchema(schema);
         }
     }
 
     [Fact]
     public async Task Accounting_CanChangePlanAndKeepHistory()
     {
-        // Hver test får sin egen database, så testene ikke påvirker hinanden.
-        var databasePath = Path.Combine(Path.GetTempPath(), $"{Guid.NewGuid():N}.db");
+        var schema = TestDatabase.CreateSchema();
         try
         {
-            using var factory = LoginTests.CreateFactory(databasePath);
+            using var factory = LoginTests.CreateFactory(schema);
             using var client = LoginTests.CreateClient(factory);
             Guid employeeId;
             Guid employmentId;
@@ -382,19 +371,17 @@ public class WorkScheduleTests
         }
         finally
         {
-            // Ryd testens database op bagefter.
-            File.Delete(databasePath);
+            TestDatabase.DropSchema(schema);
         }
     }
 
     [Fact]
     public void FullTimeToPartTime_KeepsBothWorkSchedules()
     {
-        // Hver test får sin egen database, så testene ikke påvirker hinanden.
-        var databasePath = Path.Combine(Path.GetTempPath(), $"{Guid.NewGuid():N}.db");
+        var schema = TestDatabase.CreateSchema();
         try
         {
-            using var factory = LoginTests.CreateFactory(databasePath);
+            using var factory = LoginTests.CreateFactory(schema);
             using var scope = factory.Services.CreateScope();
             var employee = scope.ServiceProvider.GetRequiredService<UserService>()
                 .Create("changing@businessesbjerg.com", Password, "Employee");
@@ -420,19 +407,17 @@ public class WorkScheduleTests
         }
         finally
         {
-            // Ryd testens database op bagefter.
-            File.Delete(databasePath);
+            TestDatabase.DropSchema(schema);
         }
     }
 
     [Fact]
     public void InvalidFullTimeConfiguration_RollsBackEmployment()
     {
-        // Hver test får sin egen database, så testene ikke påvirker hinanden.
-        var databasePath = Path.Combine(Path.GetTempPath(), $"{Guid.NewGuid():N}.db");
+        var schema = TestDatabase.CreateSchema();
         try
         {
-            using var factory = LoginTests.CreateFactory(databasePath);
+            using var factory = LoginTests.CreateFactory(schema);
             using var scope = factory.Services.CreateScope();
             var employee = scope.ServiceProvider.GetRequiredService<UserService>()
                 .Create("rollback@businessesbjerg.com", Password, "Employee");
@@ -448,8 +433,7 @@ public class WorkScheduleTests
         }
         finally
         {
-            // Ryd testens database op bagefter.
-            File.Delete(databasePath);
+            TestDatabase.DropSchema(schema);
         }
     }
 

@@ -9,9 +9,8 @@ public class MyDatabaseConnection : DataConnection
     public MyDatabaseConnection(DataOptions<MyDatabaseConnection> options)
         : base(options.Options)
     {
-        // SQLite kan læse klokkeslæt som DateTime. Vi skal bruge TimeOnly.
         var mapping = new MappingSchema();
-        mapping.SetConverter<DateTime, TimeOnly>(value => TimeOnly.FromDateTime(value));
+        mapping.SetConverter<TimeSpan, TimeOnly>(value => TimeOnly.FromTimeSpan(value));
         AddMappingSchema(mapping);
     }
 

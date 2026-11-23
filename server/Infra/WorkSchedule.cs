@@ -2,20 +2,18 @@
 
 namespace Infra;
 
-[Table("WorkSchedules")]
+[Table("work_schedules")]
 public class WorkSchedule
 {
-    [PrimaryKey, Column]
+    [PrimaryKey, Column("id")]
     public Guid Id { get; set; }
 
-    [Column, NotNull]
-    // Ansættelsen, som ugeplanen tilhører.
+    [Column("employment_id"), NotNull]
     public Guid EmploymentId { get; set; }
 
-    [Column, NotNull]
+    [Column("start_date"), NotNull]
     public DateOnly StartDate { get; set; }
 
-    [Column, Nullable]
-    // Tom slutdato betyder, at planen fortsætter.
+    [Column("end_date"), Nullable]
     public DateOnly? EndDate { get; set; }
 }

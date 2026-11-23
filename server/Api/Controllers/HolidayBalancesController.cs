@@ -2,7 +2,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Service;
 using Infra;
-using Microsoft.Data.Sqlite;
+using Npgsql;
 using System.Security.Claims;
 
 namespace Api.Controllers;
@@ -90,7 +90,7 @@ public class HolidayBalancesController : ControllerBase
         {
             return Conflict(new { message = exception.Message });
         }
-        catch (SqliteException exception) when (exception.SqliteExtendedErrorCode == 2067)
+        catch (PostgresException exception) when (exception.SqlState == PostgresErrorCodes.UniqueViolation)
         {
             return Conflict(new { message = "Operations-ID'et er allerede gemt. Gentag kaldet med samme indhold." });
         }

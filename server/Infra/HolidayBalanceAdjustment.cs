@@ -2,33 +2,33 @@ using LinqToDB.Mapping;
 
 namespace Infra;
 
-[Table("HolidayBalanceAdjustments")]
+[Table("holiday_balance_adjustments")]
 public class HolidayBalanceAdjustment
 {
-    [PrimaryKey, Column]
+    [PrimaryKey, Column("id")]
     public Guid Id { get; set; }
 
-    [Column, NotNull]
+    [Column("user_id"), NotNull]
     public Guid UserId { get; set; }
 
-    [Column, NotNull]
+    [Column("operation_id"), NotNull]
     public Guid OperationId { get; set; }
 
-    [Column, NotNull]
+    [Column("accrual_day_id"), NotNull]
     public Guid AccrualDayId { get; set; }
 
-    [Column, NotNull]
+    [Column("date"), NotNull]
     public DateOnly Date { get; set; }
 
-    [Column, NotNull]
+    [Column("hours"), NotNull]
     public decimal Hours { get; set; }
 
-    [Column, NotNull]
+    [Column("reason"), NotNull]
     public string Reason { get; set; } = "";
 
-    [Column, NotNull]
+    [Column("created_at"), NotNull]
     public DateTime CreatedAt { get; set; }
 
-    [Column, NotNull]
+    [Column("created_by"), NotNull]
     public Guid CreatedBy { get; set; }
 }

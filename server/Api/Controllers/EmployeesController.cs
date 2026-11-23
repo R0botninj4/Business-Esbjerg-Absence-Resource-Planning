@@ -1,7 +1,7 @@
 ﻿using Api.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Data.Sqlite;
+using Npgsql;
 using Service;
 
 namespace Api.Controllers;
@@ -40,8 +40,7 @@ public class EmployeesController : ControllerBase
         {
             return BadRequest(new { message = exception.Message });
         }
-        catch (SqliteException exception)
-            when (exception.SqliteExtendedErrorCode == 2067)
+        catch (PostgresException exception) when (exception.SqlState == PostgresErrorCodes.UniqueViolation)
         {
             return Conflict(new { message = "E-mailadressen er allerede i brug." });
         }
