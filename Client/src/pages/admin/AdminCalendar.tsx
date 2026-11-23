@@ -1,138 +1,76 @@
 import { useState, type SubmitEvent } from "react";
 import { Calendar } from "../../components/calendar";
-import type { CalendarEvent } from "../../types/calendarEvent";
-import { formatDate } from "../../utils/format";
+import { useCalendar } from "../../components/calendarData";
+import { saveCalendarDay } from "../../api/calendar";
+import { dateText } from "../../api/schedules";
+import { userError } from "../../api/users";
 
-type Props = {
-    events: CalendarEvent[];
-    onAdd: (event: CalendarEvent) => void;
-    onDelete: (event: CalendarEvent) => void;
-};
-
-const typeNames = {
-    info: "Info / meeting",
-    holiday: "Public holiday",
-    companyDayOff: "Company day off",
-};
-
-const typeColors = {
-    info: "bg-navy/10",
-    holiday: "bg-orange/20",
-    companyDayOff: "bg-gold/30",
-};
-
-export function AdminCalendar({ events, onAdd, onDelete }: Props) {
-    const [selectedDay, setSelectedDay] = useState<Date | null>(null);
-    const [type, setType] = useState<CalendarEvent["type"]>("info");
-    const [title, setTitle] = useState("");
+export function AdminCalendar() {
+    const { history, events, reload, loading, error: loadError } = useCalendar();
+    const [selected, setSelected] = useState<Date | null>(null);
+    const [name, setName] = useState("");
+    const [usesHolidayHours, setUsesHolidayHours] = useState(false);
+    const [saving, setSaving] = useState(false);
     const [error, setError] = useState("");
+    const [success, setSuccess] = useState("");
+    const date = selected ? dateText(selected) : "";
+    const versions = history.filter(day => day.date === date).sort((a, b) => b.version - a.version);
 
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-
-    // Entries on the selected day
-    const entriesOnDay = events.filter(e => selectedDay && e.date.getTime() === selectedDay.getTime());
-
-    // The next 8 entries from today
-    const upcoming = events
-        .filter(e => e.date >= today)
-        .sort((a, b) => a.date.getTime() - b.date.getTime())
-        .slice(0, 8);
-
-    function handleSubmit(e: SubmitEvent) {
-        e.preventDefault();
-        if (!selectedDay) return;
-
-        if (title.trim() === "") {
-            setError("Write a title, e.g. \"Personalemøde\" or \"Juledag\".");
-            return;
-        }
-
-        onAdd({ date: selectedDay, title: title, type: type });
-        setTitle("");
+    function select(date: Date) {
+        setSelected(date);
+        const latest = history.filter(day => day.date === dateText(date)).sort((a, b) => b.version - a.version)[0];
+        setName(latest?.name || "");
+        setUsesHolidayHours(latest?.usesHolidayHours ?? false);
         setError("");
+        setSuccess("");
     }
 
-    return (
-        <div>
-            <h1 className="text-3xl">Calendar</h1>
-            <p className="text-slate mb-6">
-                Click a day to add a meeting or other info, a public holiday or a company day off.
-                Public holidays and company days off are never deducted from holiday.
-            </p>
+    async function save(event: SubmitEvent) {
+        event.preventDefault();
+        if (!selected || saving) return;
+        setSaving(true);
+        setError("");
+        setSuccess("");
+        try {
+            await saveCalendarDay(date, name, usesHolidayHours);
+            setSuccess("New calendar version saved. Previous versions are kept.");
+            await reload();
+        } catch (error) { setError(userError(error)); }
+        finally { setSaving(false); }
+    }
 
-            <div className="grid grid-cols-3 gap-6 items-start">
-                <div className="col-span-2 bg-white border border-line rounded p-6">
-                    <Calendar start={selectedDay} end={null} onSelect={setSelectedDay} events={events} />
-                </div>
+    async function retry() {
+        try { await reload(); setError(""); }
+        catch (error) { setError(userError(error)); }
+    }
 
-                <div className="space-y-6">
-                    {/* The selected day */}
-                    <div className="bg-white border border-line rounded p-6 border-b-4 border-b-orange">
-                        {!selectedDay ? (
-                            <p className="text-slate">Click a day in the calendar to add something.</p>
-                        ) : (
-                            <>
-                                <h2 className="text-2xl mb-3">
-                                    {selectedDay.toLocaleDateString("en-GB", { weekday: "long" })} {formatDate(selectedDay)}
-                                </h2>
-
-                                {entriesOnDay.map(entry => (
-                                    <div key={entry.title} className="flex justify-between items-center py-1">
-                                        <span>
-                                            <span className={"text-xs font-semibold px-2 py-1 rounded-full mr-2 " + typeColors[entry.type]}>
-                                                {typeNames[entry.type]}
-                                            </span>
-                                            {entry.title}
-                                        </span>
-                                        <button onClick={() => onDelete(entry)} className="text-red-600 font-semibold hover:underline">
-                                            Delete
-                                        </button>
-                                    </div>
-                                ))}
-
-                                <form onSubmit={handleSubmit} className="mt-4 space-y-3">
-                                    <div className="space-y-1">
-                                        {(["info", "holiday", "companyDayOff"] as const).map(t => (
-                                            <label key={t} className="flex items-center gap-2">
-                                                <input type="radio" checked={type === t} onChange={() => setType(t)} />
-                                                {typeNames[t]}
-                                            </label>
-                                        ))}
-                                    </div>
-
-                                    <label className="block font-semibold">
-                                        Title
-                                        <input
-                                            value={title}
-                                            onChange={e => setTitle(e.target.value)}
-                                            placeholder="e.g. Personalemøde kl. 10"
-                                            className="mt-1 w-full border border-line rounded p-2 font-normal"
-                                        />
-                                    </label>
-
-                                    {error && <p className="text-red-600">{error}</p>}
-
-                                    <button type="submit" className="w-full bg-navy text-white font-semibold py-2 rounded hover:bg-navy/90">
-                                        Add to calendar
-                                    </button>
-                                </form>
-                            </>
-                        )}
-                    </div>
-
-                    {/* Coming entries */}
-                    <div className="bg-white border border-line rounded p-6">
-                        <h2 className="text-sm font-semibold uppercase tracking-wide text-slate mb-3">Coming entries</h2>
-                        {upcoming.map(entry => (
-                            <div key={entry.date.getTime() + entry.title} className="flex justify-between py-1 border-b border-line last:border-0">
-                                <span>{formatDate(entry.date)}</span>
-                                <span className="text-slate">{entry.title}</span>
-                            </div>
-                        ))}
-                    </div>
-                </div>
+    return <div>
+        <h1 className="text-3xl mb-3">Calendar</h1>
+        <p className="mb-6">Select a future date. Save a day off or restore a normal working day by adding a new version. Earlier versions are kept.</p>
+        {(error || loadError) && <p role="alert" className="text-red-600 mb-3">{error || loadError} <button disabled={saving} onClick={() => void retry()} className="underline">Reload</button></p>}
+        {loading && <p role="status">Loading calendar...</p>}
+        {success && <p role="status" className="mb-3">{success}</p>}
+        <div className="grid grid-cols-3 gap-6">
+            <div className="col-span-2"><Calendar start={selected} end={null} onSelect={date => { if (!saving) select(date); }} events={events} /></div>
+            <div className="bg-white border border-line rounded p-6">
+                {!selected ? <p>Select a date to view its history or save a new version.</p> : <>
+                    <h2 className="text-2xl mb-4">{date}</h2>
+                    <form onSubmit={save}><fieldset disabled={saving || loading || !!loadError}>
+                        <label className="block">Title<input required value={name} onChange={event => setName(event.target.value)} className="w-full border border-line rounded p-2 mt-1" /></label>
+                        <label className="block mt-4">Day type<select value={String(usesHolidayHours)} onChange={event => setUsesHolidayHours(event.target.value === "true")} className="w-full border border-line rounded p-2 mt-1">
+                            <option value="false">Day off — no holiday hours charged</option><option value="true">Normal day — use the work schedule</option>
+                        </select></label>
+                        <button type="submit" disabled={date <= dateText(new Date())} className="mt-4 bg-navy text-white rounded p-3 disabled:opacity-40">{saving ? "Saving..." : "Save new version"}</button>
+                        {date <= dateText(new Date()) && <p className="mt-2 text-sm">Past dates and today can only be viewed.</p>}
+                    </fieldset></form>
+                    <h3 className="text-xl mt-6 mb-2">Version history</h3>
+                    {versions.length === 0 && <p>No calendar override. The employee's work schedule applies.</p>}
+                    {versions.map(version => <div key={version.id} className="border-b border-line py-3">
+                        <strong>v{version.version}: {version.name}</strong><p>{version.usesHolidayHours ? "Normal work schedule" : "Day off"}</p>
+                        <p className="text-sm text-slate">{new Date(version.createdAt).toLocaleString()} · {version.createdBy}</p>
+                    </div>)}
+                </>}
             </div>
         </div>
-    );
+    </div>;
 }

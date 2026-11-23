@@ -31,6 +31,10 @@ public class UsersController(UserService users) : ControllerBase
             var user = users.Create(request.Email, request.Password, request.Role);
             return CreatedAtAction(nameof(Get), new { user.Id }, UserResponse.From(user));
         }
+        catch (AccountRoleConflictException exception)
+        {
+            return Conflict(new { message = exception.Message });
+        }
         catch (ArgumentException exception) when (exception.ParamName == "email")
         {
             return BadRequest(new { message = exception.Message });
@@ -53,6 +57,10 @@ public class UsersController(UserService users) : ControllerBase
         {
             return users.Update(id, request.Email, request.Role) ? NoContent() : NotFound();
         }
+        catch (AccountRoleConflictException exception)
+        {
+            return Conflict(new { message = exception.Message });
+        }
         catch (ArgumentException exception) when (exception.ParamName == "email")
         {
             return BadRequest(new { message = exception.Message });
@@ -74,6 +82,19 @@ public class UsersController(UserService users) : ControllerBase
         try
         {
             return users.Delete(id) ? NoContent() : NotFound();
+        }
+        catch (AccountRoleConflictException exception)
+        {
+            return Conflict(new { message = exception.Message });
+        }
+    }
+
+    [HttpPost("{id:guid}/reactivate")]
+    public IActionResult Reactivate(Guid id)
+    {
+        try
+        {
+            return users.Reactivate(id) ? NoContent() : NotFound();
         }
         catch (AccountRoleConflictException exception)
         {

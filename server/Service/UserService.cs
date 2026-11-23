@@ -81,6 +81,25 @@ public class UserService(MyDatabaseConnection db, IPasswordHasher<User> password
             .Update() != 0;
     }
 
+    public bool Reactivate(Guid id)
+    {
+        var user = Find(id);
+        if (user == null)
+        {
+            return false;
+        }
+
+        if (IsRoleAccount(user.Role))
+        {
+            throw new AccountRoleConflictException("Kun medarbejderkonti kan genaktiveres.");
+        }
+
+        db.Users.Where(user => user.Id == id && user.Role == "Employee")
+            .Set(user => user.IsActive, true)
+            .Update();
+        return true;
+    }
+
     private static bool IsRoleAccount(string role)
     {
         return role == "Admin" || role == "Accounting";

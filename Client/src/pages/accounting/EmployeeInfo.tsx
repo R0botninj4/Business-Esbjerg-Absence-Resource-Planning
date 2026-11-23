@@ -1,154 +1,70 @@
 import { useState } from "react";
 import { Link, useParams } from "react-router";
-import { BalanceCard } from "../../components/balanceCard";
 import { Calendar } from "../../components/calendar";
-import { InfoBox } from "../../components/infoBox";
-import { RequestRow } from "../../components/requestRow";
 import { ScheduleForm } from "../../components/scheduleForm";
-import { testBalances } from "../../mockdata/testBalances";
-import type { Employee, SchedulePeriod } from "../../types/employee";
-import type { HolidayRequest } from "../../types/holidayRequest";
+import { useEmployees } from "../../components/employeeData";
+import { getEmployments, userError } from "../../api/users";
+import { saveSchedule } from "../../api/schedules";
+import type { SchedulePeriod } from "../../types/employee";
 import { formatDate } from "../../utils/format";
-import { weekdayIndex } from "../../utils/dates";
-import { employmentText, employmentToday, hoursOfDay, scheduleOn, weekdayNames } from "../../utils/schedule";
+import { employmentText, hoursOfDay, scheduleOn, weekdayNames } from "../../utils/schedule";
 import type { CalendarEvent } from "../../types/calendarEvent";
 
-type Props = {
-    employees: Employee[];
-    requests: HolidayRequest[];
-    onAddSchedule: (employeeId: number, period: SchedulePeriod) => void;
-    events: CalendarEvent[];
-};
-
-export function EmployeeInfo({ employees, requests, onAddSchedule, events }: Props) {
-    const { id } = useParams(); // the number in the URL, e.g. /accounting/employees/3
+export function EmployeeInfo({ events }: { events: CalendarEvent[] }) {
+    const { id } = useParams();
+    const { employees, reload } = useEmployees();
     const [editing, setEditing] = useState(false);
-
-    const employee = employees.find(e => e.id === Number(id));
-
-    if (!employee) {
-        return (
-            <div>
-                <Link to="/accounting/employees" className="font-semibold hover:text-orange">← All employees</Link>
-                <p className="mt-4">Employee not found.</p>
-            </div>
-        );
-    }
-
+    const [success, setSuccess] = useState("");
+    const [error, setError] = useState("");
+    const employee = employees.find(employee => employee.id === id);
+    if (!employee) return <p>Employee not found.</p>;
     const currentDays = scheduleOn(employee, new Date());
 
-    // This employee's requests, newest first, split into the same three rows as "My requests"
-    const theirs = requests
-        .filter(r => r.employeeName === employee.name)
-        .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
-    const pending = theirs.filter(r => r.status === "pending");
-    const approved = theirs.filter(r => r.status === "approved");
-    const closed = theirs.filter(r => r.status === "declined" || r.status === "cancelled");
-
-    // The holidays shown in the calendar: pending and approved
-    const booked = theirs.filter(r => r.status === "pending" || r.status === "approved");
-
-    // Working hours shown in the calendar. Empty on weekends, days off and holidays.
-    function workingHours(day: Date) {
-        const time = day.getTime();
-        const index = weekdayIndex(day);
-        const isDayOff = events.some(e => e.type !== "info" && e.date.getTime() === time);
-        const isHoliday = booked.some(r => time >= r.start.getTime() && time <= r.end.getTime());
-        if (index > 4 || isDayOff || isHoliday) return "";
-
-        const workDay = scheduleOn(employee!, day)[index];
-        return workDay ? workDay.from + "–" + workDay.to : "Not working";
+    async function changeSchedule(period: SchedulePeriod) {
+        if (!employee) return;
+        const employments = await getEmployments(String(employee.id));
+        const date = period.validFrom;
+        const employment = employments.find(item => new Date(item.startDate + "T00:00") <= date && (!item.endDate || new Date(item.endDate + "T23:59:59.999") >= date));
+        if (!employment) throw new Error("There is no employment on the selected date.");
+        await saveSchedule(employment, employee.schedules, period);
+        setEditing(false);
+        setSuccess("The schedule has been saved. Earlier versions are kept.");
+        try {
+            await reload();
+            setError("");
+        } catch (error) {
+            setError("The schedule is saved, but the list could not be refreshed. " + userError(error));
+        }
     }
 
-    // The day before the next period starts, or null for the newest period
-    function periodEnd(index: number) {
-        const next = employee!.schedules[index + 1];
-        if (!next) return null;
-        return new Date(next.validFrom.getFullYear(), next.validFrom.getMonth(), next.validFrom.getDate() - 1);
+    function workingHours(date: Date) {
+        if (!employee || date.getDay() === 0 || date.getDay() === 6) return "";
+        if (events.some(event => event.type !== "info" && event.date.toDateString() === date.toDateString())) return "";
+        const day = scheduleOn(employee, date)[date.getDay() - 1];
+        return day ? day.from + "–" + day.to : "Not working";
     }
 
-    return (
-        <div>
-            <Link to="/accounting/employees" className="font-semibold hover:text-orange">← All employees</Link>
-
-            <h1 className="text-3xl mt-4">{employee.name}</h1>
-            <p className="text-slate mb-6">{employee.email} - {employmentToday(employee)}</p>
-
-            {/* Balances (mock data – the same for everyone until the backend calculates them) */}
-            <div className="grid grid-cols-2 gap-6 mb-8">
-                <BalanceCard title="Week 1–5" hours={testBalances.weeks1to5.hours} useBy={testBalances.weeks1to5.useBy} lineColor="border-b-navy" />
-                <BalanceCard title="Week 6" hours={testBalances.week6.hours} useBy={testBalances.week6.useBy} lineColor="border-b-slate" />
+    return <div>
+        <Link to="../employees" className="font-semibold">← All employees</Link>
+        <h1 className="text-3xl mt-4 mb-4">{employee.email}</h1>
+        {success && <p role="status" className="mb-4">{success}</p>}
+        {error && <p role="alert" className="mb-4 text-red-600">{error}</p>}
+        <div className="bg-white border border-line rounded p-6 mb-6">
+            <div className="flex justify-between mb-4"><h2 className="text-2xl">Work schedule today</h2>
+                {!editing && <button onClick={() => { setEditing(true); setSuccess(""); }} className="font-semibold">New schedule version</button>}
             </div>
-
-            {/* Work schedule (full width, history at the bottom) */}
-            <div className="bg-white border border-line rounded p-6 mb-8">
-                <div className="flex justify-between items-center mb-4">
-                    <h2 className="text-2xl">Work schedule</h2>
-                    {!editing && (
-                        <button onClick={() => setEditing(true)} className="border border-navy font-semibold px-4 py-2 rounded hover:bg-cream">
-                            Edit schedule
-                        </button>
-                    )}
-                </div>
-
-                <div className="grid grid-cols-5 gap-2">
-                    {currentDays.map((day, index) => (
-                        <div key={index} className={"rounded border border-line p-3 text-center " + (day ? "bg-white" : "bg-line text-slate")}>
-                            <p className="font-semibold">{weekdayNames[index]}</p>
-                            <p>{day ? day.from + "–" + day.to : "Not working"}</p>
-                            <p className="text-sm text-slate">{hoursOfDay(day).toFixed(2)} h</p>
-                        </div>
-                    ))}
-                </div>
-
-                {editing && (
-                    <ScheduleForm
-                        startDays={currentDays}
-                        onSave={period => onAddSchedule(employee.id, period)}
-                        onClose={() => setEditing(false)}
-                    />
-                )}
-
-                <h3 className="text-sm font-semibold uppercase tracking-wide text-slate mt-6 mb-2">Schedule history</h3>
-                {employee.schedules.map((period, index) => {
-                    const endDate = periodEnd(index);
-                    return (
-                        <div key={period.validFrom.getTime()} className="flex gap-8 py-1 border-b border-line last:border-0">
-                            <span className="w-64">{formatDate(period.validFrom)} – {endDate ? formatDate(endDate) : "onwards"}</span>
-                            <span className="text-slate">{employmentText(period.days)}</span>
-                        </div>
-                    );
-                }).reverse()}
-            </div>
-
-            {/* Calendar (read only) beside the requests */}
-            <div className="grid grid-cols-5 gap-8 mb-8 items-start">
-                <div className="col-span-3 bg-white border border-line rounded p-6">
-                    <h2 className="text-2xl mb-4">Calendar</h2>
-                    <Calendar start={null} end={null} onSelect={() => {}} events={events} requested={booked} dayText={workingHours} />
-                    <div className="flex gap-5 mt-4 text-sm">
-                        <span className="flex items-center gap-2"><span className="w-4 h-4 rounded bg-gold"></span>Pending</span>
-                        <span className="flex items-center gap-2"><span className="w-4 h-4 rounded bg-navy"></span>Approved</span>
-                    </div>
-                </div>
-
-                {/* Requests (no buttons – accounting decides on the Approvals page) */}
-                <div className="col-span-2 min-w-0">
-                    <RequestRow title="Pending" requests={pending} />
-                    <RequestRow title="Approved" requests={approved} />
-                    <RequestRow title="Declined & cancelled" requests={closed} />
-                </div>
-            </div>
-
-            {/* Room for later features */}
-            <div className="grid grid-cols-2 gap-6">
-                <InfoBox title="Sickness & holiday obstacles">
-                    <p className="text-slate">Coming later (#10).</p>
-                </InfoBox>
-                <InfoBox title="Transfer agreements">
-                    <p className="text-slate">Coming later (#6). Transfer is currently turned off by company policy.</p>
-                </InfoBox>
-            </div>
+            <div className="grid grid-cols-5 gap-2">{currentDays.map((day, index) => <div key={index} className="border border-line rounded p-3">
+                <p className="font-semibold">{weekdayNames[index]}</p><p>{day ? day.from + "–" + day.to : "Not working"}</p><p>{hoursOfDay(day).toFixed(2)} h</p>
+            </div>)}</div>
+            {editing && <ScheduleForm startDays={currentDays} onSave={changeSchedule} onClose={() => setEditing(false)} />}
+            <h3 className="text-xl mt-6">Schedule history</h3>
+            {employee.schedules.length === 0 && <p>No work schedules have been saved.</p>}
+            {[...employee.schedules].reverse().map(period => <div key={period.id} className="border-b border-line py-3">
+                <p>{formatDate(period.validFrom)} – {period.validTo ? formatDate(period.validTo) : "onwards"} · {employmentText(period.days, period.employmentType)}</p>
+                <p className="text-sm text-slate">{period.days.map((day, index) => weekdayNames[index] + ": " + (day ? day.from + "–" + day.to : "off")).join(" · ")}</p>
+            </div>)}
         </div>
-    );
+        <Calendar start={null} end={null} onSelect={() => {}} events={events} dayText={workingHours} />
+        <p className="text-slate mt-4">Holiday requests and balances will be connected separately.</p>
+    </div>;
 }

@@ -10,12 +10,69 @@
  * ---------------------------------------------------------------
  */
 
+export interface CalendarDay {
+  /** @format uuid */
+  id?: string;
+  /** @format date */
+  date?: string;
+  name?: string;
+  usesHolidayHours?: boolean;
+  /**
+   * @format int32
+   * @pattern ^-?(?:0|[1-9]\d*)$
+   */
+  version?: number | string;
+  /** @format date-time */
+  createdAt?: string;
+  /** @format uuid */
+  createdBy?: string;
+}
+
+export interface ChangeWorkScheduleRequest {
+  /** @format date */
+  startDate?: string;
+  days?: WorkScheduleDayRequest[];
+}
+
+export interface CreateCalendarDayRequest {
+  /** @format date */
+  date?: string;
+  name: string;
+  usesHolidayHours: null | boolean;
+}
+
+export interface CreateEmployeeRequest {
+  /**
+   * @minLength 0
+   * @maxLength 254
+   */
+  email: string;
+  /**
+   * @minLength 12
+   * @maxLength 128
+   */
+  password: string;
+  type?: EmploymentType;
+  /** @format date */
+  startDate?: string;
+  /** @format date */
+  endDate?: null | string;
+  days?: null | WorkScheduleDayRequest[];
+}
+
 export interface CreateEmploymentRequest {
-  type: EmploymentType;
+  type?: EmploymentType;
   /** @format date */
-  startDate: string;
+  startDate?: string;
   /** @format date */
-  endDate: null | string;
+  endDate?: null | string;
+  days?: null | WorkScheduleDayRequest[];
+}
+
+export interface CreateHolidayRuleRequest {
+  /** @format date */
+  effectiveFrom?: string;
+  settings: null | HolidayRuleSettings;
 }
 
 export interface CreateUserRequest {
@@ -23,6 +80,16 @@ export interface CreateUserRequest {
   password: string;
   role: string;
 }
+
+export interface CreateWorkScheduleRequest {
+  /** @format date */
+  startDate?: string;
+  /** @format date */
+  endDate?: null | string;
+  days?: WorkScheduleDayRequest[];
+}
+
+export type DayOfWeek = number;
 
 export interface Employment {
   /** @format uuid */
@@ -40,7 +107,595 @@ export type EmploymentType = number;
 
 export interface EndEmploymentRequest {
   /** @format date */
-  endDate: string;
+  endDate?: string;
+}
+
+export interface EndWorkScheduleRequest {
+  /** @format date */
+  endDate?: string;
+}
+
+export type HolidayAccount = number;
+
+export interface HolidayAccountPeriod {
+  /** @format date */
+  earningStart?: string;
+  /** @format date */
+  earningEnd?: string;
+  /** @format date */
+  usageStart?: string;
+  /** @format date */
+  usageEnd?: string;
+  /** @format date */
+  transferDeadline?: string;
+}
+
+export interface HolidayAccrualDay {
+  /** @format uuid */
+  id?: string;
+  /** @format uuid */
+  accrualMonthId?: string;
+  /** @format uuid */
+  employmentId?: string;
+  /** @format date */
+  date?: string;
+  account?: HolidayAccount;
+  /**
+   * @format double
+   * @pattern ^-?(?:0|[1-9]\d*)(?:\.\d+)?$
+   */
+  hours?: number | string;
+  /**
+   * @format double
+   * @pattern ^-?(?:0|[1-9]\d*)(?:\.\d+)?$
+   */
+  rawHours?: number | string;
+  /**
+   * @format double
+   * @pattern ^-?(?:0|[1-9]\d*)(?:\.\d+)?$
+   */
+  rawDays?: number | string;
+  /** @format uuid */
+  holidayRuleId?: string;
+  /** @format uuid */
+  workScheduleId?: string;
+  /** @format date */
+  earningStart?: string;
+  /** @format date */
+  earningEnd?: string;
+  /** @format date */
+  usageStart?: string;
+  /** @format date */
+  usageEnd?: string;
+}
+
+export interface HolidayAccrualResult {
+  /**
+   * @format double
+   * @pattern ^-?(?:0|[1-9]\d*)(?:\.\d+)?$
+   */
+  weeksOneToFiveHours?: number | string;
+  /**
+   * @format double
+   * @pattern ^-?(?:0|[1-9]\d*)(?:\.\d+)?$
+   */
+  sixthWeekHours?: number | string;
+  isPosted?: boolean;
+  days?: HolidayAccrualDay[];
+}
+
+export interface HolidayAdjustmentRequest {
+  /** @format uuid */
+  operationId?: string;
+  /** @format uuid */
+  accrualDayId?: string;
+  /** @format date */
+  date?: string;
+  /**
+   * @format double
+   * @pattern ^-?(?:0|[1-9]\d*)(?:\.\d+)?$
+   */
+  hours?: number | string;
+  reason?: string;
+}
+
+export interface HolidayBalanceAdjustment {
+  /** @format uuid */
+  id?: string;
+  /** @format uuid */
+  userId?: string;
+  /** @format uuid */
+  operationId?: string;
+  /** @format uuid */
+  accrualDayId?: string;
+  /** @format date */
+  date?: string;
+  /**
+   * @format double
+   * @pattern ^-?(?:0|[1-9]\d*)(?:\.\d+)?$
+   */
+  hours?: number | string;
+  reason?: string;
+  /** @format date-time */
+  createdAt?: string;
+  /** @format uuid */
+  createdBy?: string;
+}
+
+export interface HolidayBalancePeriod {
+  account?: HolidayAccount;
+  /** @format date */
+  earningStart?: string;
+  /** @format date */
+  earningEnd?: string;
+  /** @format date */
+  usageStart?: string;
+  /** @format date */
+  usageEnd?: string;
+  /**
+   * @format double
+   * @pattern ^-?(?:0|[1-9]\d*)(?:\.\d+)?$
+   */
+  postedHours?: number | string;
+  /**
+   * @format double
+   * @pattern ^-?(?:0|[1-9]\d*)(?:\.\d+)?$
+   */
+  adjustmentHours?: number | string;
+  /**
+   * @format double
+   * @pattern ^-?(?:0|[1-9]\d*)(?:\.\d+)?$
+   */
+  hours?: number | string;
+}
+
+export interface HolidayBalanceResult {
+  /** @format date */
+  date?: string;
+  /**
+   * @format double
+   * @pattern ^-?(?:0|[1-9]\d*)(?:\.\d+)?$
+   */
+  weeksOneToFiveHours?: number | string;
+  /**
+   * @format double
+   * @pattern ^-?(?:0|[1-9]\d*)(?:\.\d+)?$
+   */
+  sixthWeekHours?: number | string;
+  includesHolidayUsage?: boolean;
+  includesScheduleConversions?: boolean;
+  periods?: HolidayBalancePeriod[];
+}
+
+export interface HolidayHoursDay {
+  /** @format date */
+  date?: string;
+  /**
+   * @format double
+   * @pattern ^-?(?:0|[1-9]\d*)(?:\.\d+)?$
+   */
+  hours?: number | string;
+  description?: string;
+  /** @format uuid */
+  workScheduleId?: null | string;
+  /** @format uuid */
+  calendarDayId?: null | string;
+}
+
+export interface HolidayHoursResult {
+  /**
+   * @format double
+   * @pattern ^-?(?:0|[1-9]\d*)(?:\.\d+)?$
+   */
+  hours?: number | string;
+  days?: HolidayHoursDay[];
+}
+
+export interface HolidayRule {
+  /** @format uuid */
+  id?: string;
+  name?: string;
+  /** @format date */
+  effectiveFrom?: string;
+  /**
+   * @format int32
+   * @pattern ^-?(?:0|[1-9]\d*)$
+   */
+  version?: number | string;
+  /**
+   * @format double
+   * @pattern ^-?(?:0|[1-9]\d*)(?:\.\d+)?$
+   */
+  holidayDaysPerMonth?: number | string;
+  /**
+   * @format double
+   * @pattern ^-?(?:0|[1-9]\d*)(?:\.\d+)?$
+   */
+  holidayDaysPerYear?: null | number | string;
+  /**
+   * @format double
+   * @pattern ^-?(?:0|[1-9]\d*)(?:\.\d+)?$
+   */
+  sixthWeekHoursPerCalendarDay?: null | number | string;
+  sixthWeekEnabled?: boolean;
+  /**
+   * @format double
+   * @pattern ^-?(?:0|[1-9]\d*)(?:\.\d+)?$
+   */
+  sixthWeekHoursPerMonth?: number | string;
+  /**
+   * @format double
+   * @pattern ^-?(?:0|[1-9]\d*)(?:\.\d+)?$
+   */
+  fullTimeHoursPerWeek?: number | string;
+  /**
+   * @format double
+   * @pattern ^-?(?:0|[1-9]\d*)(?:\.\d+)?$
+   */
+  maximumDebtDays?: number | string;
+  allowTransfer?: boolean;
+  /**
+   * @format double
+   * @pattern ^-?(?:0|[1-9]\d*)(?:\.\d+)?$
+   */
+  maximumTransferDays?: number | string;
+  periods?: null | HolidayRulePeriodSettings;
+  /** @format date-time */
+  createdAt?: string;
+  /** @format uuid */
+  createdBy?: string;
+}
+
+export interface HolidayRulePeriodSettings {
+  /** @format uuid */
+  holidayRuleId?: string;
+  /**
+   * @format int32
+   * @pattern ^-?(?:0|[1-9]\d*)$
+   */
+  holidayEarningStartMonth?: number | string;
+  /**
+   * @format int32
+   * @pattern ^-?(?:0|[1-9]\d*)$
+   */
+  holidayEarningStartDay?: number | string;
+  /**
+   * @format int32
+   * @pattern ^-?(?:0|[1-9]\d*)$
+   */
+  holidayUsageStartMonth?: number | string;
+  /**
+   * @format int32
+   * @pattern ^-?(?:0|[1-9]\d*)$
+   */
+  holidayUsageStartDay?: number | string;
+  /**
+   * @format int32
+   * @pattern ^-?(?:0|[1-9]\d*)$
+   */
+  holidayUsageStartYearOffset?: number | string;
+  /**
+   * @format int32
+   * @pattern ^-?(?:0|[1-9]\d*)$
+   */
+  holidayUsageEndMonth?: number | string;
+  /**
+   * @format int32
+   * @pattern ^-?(?:0|[1-9]\d*)$
+   */
+  holidayUsageEndDay?: number | string;
+  /**
+   * @format int32
+   * @pattern ^-?(?:0|[1-9]\d*)$
+   */
+  holidayUsageEndYearOffset?: number | string;
+  /**
+   * @format int32
+   * @pattern ^-?(?:0|[1-9]\d*)$
+   */
+  sixthWeekEarningStartMonth?: number | string;
+  /**
+   * @format int32
+   * @pattern ^-?(?:0|[1-9]\d*)$
+   */
+  sixthWeekEarningStartDay?: number | string;
+  /**
+   * @format int32
+   * @pattern ^-?(?:0|[1-9]\d*)$
+   */
+  sixthWeekUsageStartMonth?: number | string;
+  /**
+   * @format int32
+   * @pattern ^-?(?:0|[1-9]\d*)$
+   */
+  sixthWeekUsageStartDay?: number | string;
+  /**
+   * @format int32
+   * @pattern ^-?(?:0|[1-9]\d*)$
+   */
+  sixthWeekUsageStartYearOffset?: number | string;
+  /**
+   * @format int32
+   * @pattern ^-?(?:0|[1-9]\d*)$
+   */
+  sixthWeekUsageEndMonth?: number | string;
+  /**
+   * @format int32
+   * @pattern ^-?(?:0|[1-9]\d*)$
+   */
+  sixthWeekUsageEndDay?: number | string;
+  /**
+   * @format int32
+   * @pattern ^-?(?:0|[1-9]\d*)$
+   */
+  sixthWeekUsageEndYearOffset?: number | string;
+  /**
+   * @format int32
+   * @pattern ^-?(?:0|[1-9]\d*)$
+   */
+  mainHolidayDays?: number | string;
+  /**
+   * @format int32
+   * @pattern ^-?(?:0|[1-9]\d*)$
+   */
+  mainHolidayStartMonth?: number | string;
+  /**
+   * @format int32
+   * @pattern ^-?(?:0|[1-9]\d*)$
+   */
+  mainHolidayStartDay?: number | string;
+  /**
+   * @format int32
+   * @pattern ^-?(?:0|[1-9]\d*)$
+   */
+  mainHolidayEndMonth?: number | string;
+  /**
+   * @format int32
+   * @pattern ^-?(?:0|[1-9]\d*)$
+   */
+  mainHolidayEndDay?: number | string;
+  /**
+   * @format int32
+   * @pattern ^-?(?:0|[1-9]\d*)$
+   */
+  mainHolidayNoticeMonths?: number | string;
+  /**
+   * @format int32
+   * @pattern ^-?(?:0|[1-9]\d*)$
+   */
+  otherHolidayNoticeMonths?: number | string;
+  /**
+   * @format int32
+   * @pattern ^-?(?:0|[1-9]\d*)$
+   */
+  debtDeadlineMonth?: number | string;
+  /**
+   * @format int32
+   * @pattern ^-?(?:0|[1-9]\d*)$
+   */
+  debtDeadlineDay?: number | string;
+  /**
+   * @format int32
+   * @pattern ^-?(?:0|[1-9]\d*)$
+   */
+  holidayTransferDeadlineMonth?: number | string;
+  /**
+   * @format int32
+   * @pattern ^-?(?:0|[1-9]\d*)$
+   */
+  holidayTransferDeadlineDay?: number | string;
+  /**
+   * @format int32
+   * @pattern ^-?(?:0|[1-9]\d*)$
+   */
+  sixthWeekTransferDeadlineMonth?: number | string;
+  /**
+   * @format int32
+   * @pattern ^-?(?:0|[1-9]\d*)$
+   */
+  sixthWeekTransferDeadlineDay?: number | string;
+}
+
+export interface HolidayRulePeriodsResult {
+  weeksOneToFive?: HolidayAccountPeriod;
+  sixthWeek?: HolidayAccountPeriod;
+  sixthWeekEnabled?: boolean;
+  /** @format date */
+  mainHolidayStart?: string;
+  /** @format date */
+  mainHolidayEnd?: string;
+  /** @format date */
+  debtDeadline?: string;
+}
+
+export interface HolidayRuleSettings {
+  /**
+   * @minLength 0
+   * @maxLength 100
+   */
+  name: string;
+  /**
+   * @format double
+   * @pattern ^-?(?:0|[1-9]\d*)(?:\.\d+)?$
+   */
+  holidayDaysPerMonth: number | string;
+  /**
+   * @format double
+   * @pattern ^-?(?:0|[1-9]\d*)(?:\.\d+)?$
+   */
+  holidayDaysPerYear: number | string;
+  /**
+   * @format double
+   * @pattern ^-?(?:0|[1-9]\d*)(?:\.\d+)?$
+   */
+  sixthWeekHoursPerCalendarDay: number | string;
+  sixthWeekEnabled: boolean;
+  /**
+   * @format double
+   * @pattern ^-?(?:0|[1-9]\d*)(?:\.\d+)?$
+   */
+  sixthWeekHoursPerMonth: number | string;
+  /**
+   * @format double
+   * @pattern ^-?(?:0|[1-9]\d*)(?:\.\d+)?$
+   */
+  fullTimeHoursPerWeek: number | string;
+  /**
+   * @format double
+   * @pattern ^-?(?:0|[1-9]\d*)(?:\.\d+)?$
+   */
+  maximumDebtDays: number | string;
+  allowTransfer: boolean;
+  /**
+   * @format double
+   * @pattern ^-?(?:0|[1-9]\d*)(?:\.\d+)?$
+   */
+  maximumTransferDays: number | string;
+  /**
+   * @format int32
+   * @pattern ^-?(?:0|[1-9]\d*)$
+   */
+  holidayEarningStartMonth: number | string;
+  /**
+   * @format int32
+   * @pattern ^-?(?:0|[1-9]\d*)$
+   */
+  holidayEarningStartDay: number | string;
+  /**
+   * @format int32
+   * @pattern ^-?(?:0|[1-9]\d*)$
+   */
+  holidayUsageStartMonth: number | string;
+  /**
+   * @format int32
+   * @pattern ^-?(?:0|[1-9]\d*)$
+   */
+  holidayUsageStartDay: number | string;
+  /**
+   * @format int32
+   * @pattern ^-?(?:0|[1-9]\d*)$
+   */
+  holidayUsageStartYearOffset: number | string;
+  /**
+   * @format int32
+   * @pattern ^-?(?:0|[1-9]\d*)$
+   */
+  holidayUsageEndMonth: number | string;
+  /**
+   * @format int32
+   * @pattern ^-?(?:0|[1-9]\d*)$
+   */
+  holidayUsageEndDay: number | string;
+  /**
+   * @format int32
+   * @pattern ^-?(?:0|[1-9]\d*)$
+   */
+  holidayUsageEndYearOffset: number | string;
+  /**
+   * @format int32
+   * @pattern ^-?(?:0|[1-9]\d*)$
+   */
+  sixthWeekEarningStartMonth: number | string;
+  /**
+   * @format int32
+   * @pattern ^-?(?:0|[1-9]\d*)$
+   */
+  sixthWeekEarningStartDay: number | string;
+  /**
+   * @format int32
+   * @pattern ^-?(?:0|[1-9]\d*)$
+   */
+  sixthWeekUsageStartMonth: number | string;
+  /**
+   * @format int32
+   * @pattern ^-?(?:0|[1-9]\d*)$
+   */
+  sixthWeekUsageStartDay: number | string;
+  /**
+   * @format int32
+   * @pattern ^-?(?:0|[1-9]\d*)$
+   */
+  sixthWeekUsageStartYearOffset: number | string;
+  /**
+   * @format int32
+   * @pattern ^-?(?:0|[1-9]\d*)$
+   */
+  sixthWeekUsageEndMonth: number | string;
+  /**
+   * @format int32
+   * @pattern ^-?(?:0|[1-9]\d*)$
+   */
+  sixthWeekUsageEndDay: number | string;
+  /**
+   * @format int32
+   * @pattern ^-?(?:0|[1-9]\d*)$
+   */
+  sixthWeekUsageEndYearOffset: number | string;
+  /**
+   * @format int32
+   * @pattern ^-?(?:0|[1-9]\d*)$
+   */
+  mainHolidayDays: number | string;
+  /**
+   * @format int32
+   * @pattern ^-?(?:0|[1-9]\d*)$
+   */
+  mainHolidayStartMonth: number | string;
+  /**
+   * @format int32
+   * @pattern ^-?(?:0|[1-9]\d*)$
+   */
+  mainHolidayStartDay: number | string;
+  /**
+   * @format int32
+   * @pattern ^-?(?:0|[1-9]\d*)$
+   */
+  mainHolidayEndMonth: number | string;
+  /**
+   * @format int32
+   * @pattern ^-?(?:0|[1-9]\d*)$
+   */
+  mainHolidayEndDay: number | string;
+  /**
+   * @format int32
+   * @pattern ^-?(?:0|[1-9]\d*)$
+   */
+  mainHolidayNoticeMonths: number | string;
+  /**
+   * @format int32
+   * @pattern ^-?(?:0|[1-9]\d*)$
+   */
+  otherHolidayNoticeMonths: number | string;
+  /**
+   * @format int32
+   * @pattern ^-?(?:0|[1-9]\d*)$
+   */
+  debtDeadlineMonth: number | string;
+  /**
+   * @format int32
+   * @pattern ^-?(?:0|[1-9]\d*)$
+   */
+  debtDeadlineDay: number | string;
+  /**
+   * @format int32
+   * @pattern ^-?(?:0|[1-9]\d*)$
+   */
+  holidayTransferDeadlineMonth: number | string;
+  /**
+   * @format int32
+   * @pattern ^-?(?:0|[1-9]\d*)$
+   */
+  holidayTransferDeadlineDay: number | string;
+  /**
+   * @format int32
+   * @pattern ^-?(?:0|[1-9]\d*)$
+   */
+  sixthWeekTransferDeadlineMonth: number | string;
+  /**
+   * @format int32
+   * @pattern ^-?(?:0|[1-9]\d*)$
+   */
+  sixthWeekTransferDeadlineDay: number | string;
 }
 
 export interface LoginRequest {
@@ -94,6 +749,39 @@ export interface WeatherForecast {
    */
   temperatureF?: number | string;
   summary?: null | string;
+}
+
+export interface WorkSchedule {
+  /** @format uuid */
+  id?: string;
+  /** @format uuid */
+  employmentId?: string;
+  /** @format date */
+  startDate?: string;
+  /** @format date */
+  endDate?: null | string;
+}
+
+export interface WorkScheduleDay {
+  /** @format uuid */
+  id?: string;
+  /** @format uuid */
+  workScheduleId?: string;
+  day?: DayOfWeek;
+  isDayOff?: boolean;
+  /** @format time */
+  startTime?: null | string;
+  /** @format time */
+  endTime?: null | string;
+}
+
+export interface WorkScheduleDayRequest {
+  day?: DayOfWeek;
+  isDayOff?: boolean;
+  /** @format time */
+  startTime?: null | string;
+  /** @format time */
+  endTime?: null | string;
 }
 
 export type QueryParamsType = Record<string | number, any>;
@@ -409,6 +1097,76 @@ export class Api<
     /**
      * No description
      *
+     * @tags CalendarDays
+     * @name CalendarDaysList
+     * @request GET:/api/calendar-days
+     */
+    calendarDaysList: (params: RequestParams = {}) =>
+      this.request<CalendarDay[], any>({
+        path: `/api/calendar-days`,
+        method: "GET",
+        format: "json",
+        ...params,
+      }),
+
+    /**
+     * No description
+     *
+     * @tags CalendarDays
+     * @name CalendarDaysCreate
+     * @request POST:/api/calendar-days
+     */
+    calendarDaysCreate: (
+      data: CreateCalendarDayRequest,
+      params: RequestParams = {},
+    ) =>
+      this.request<CalendarDay, ProblemDetails>({
+        path: `/api/calendar-days`,
+        method: "POST",
+        body: data,
+        type: ContentType.Json,
+        format: "json",
+        ...params,
+      }),
+
+    /**
+     * No description
+     *
+     * @tags Employees
+     * @name EmployeesList
+     * @request GET:/api/employees
+     */
+    employeesList: (params: RequestParams = {}) =>
+      this.request<UserResponse[], any>({
+        path: `/api/employees`,
+        method: "GET",
+        format: "json",
+        ...params,
+      }),
+
+    /**
+     * No description
+     *
+     * @tags Employees
+     * @name EmployeesCreate
+     * @request POST:/api/employees
+     */
+    employeesCreate: (
+      data: CreateEmployeeRequest,
+      params: RequestParams = {},
+    ) =>
+      this.request<UserResponse, any>({
+        path: `/api/employees`,
+        method: "POST",
+        body: data,
+        type: ContentType.Json,
+        format: "json",
+        ...params,
+      }),
+
+    /**
+     * No description
+     *
      * @tags Employments
      * @name UsersEmploymentsList
      * @request GET:/api/users/{userId}/employments
@@ -460,6 +1218,291 @@ export class Api<
         method: "PATCH",
         body: data,
         type: ContentType.Json,
+        ...params,
+      }),
+
+    /**
+     * No description
+     *
+     * @tags HolidayAccrual
+     * @name UsersHolidayAccrualList
+     * @request GET:/api/users/{userId}/holiday-accrual
+     */
+    usersHolidayAccrualList: (
+      userId: string,
+      query?: {
+        /**
+         * @format int32
+         * @pattern ^-?(?:0|[1-9]\d*)$
+         */
+        year?: number | string;
+        /**
+         * @format int32
+         * @pattern ^-?(?:0|[1-9]\d*)$
+         */
+        month?: number | string;
+      },
+      params: RequestParams = {},
+    ) =>
+      this.request<HolidayAccrualResult, any>({
+        path: `/api/users/${userId}/holiday-accrual`,
+        method: "GET",
+        query: query,
+        format: "json",
+        ...params,
+      }),
+
+    /**
+     * No description
+     *
+     * @tags HolidayAccrual
+     * @name UsersHolidayAccrualCreate
+     * @request POST:/api/users/{userId}/holiday-accrual
+     */
+    usersHolidayAccrualCreate: (
+      userId: string,
+      query?: {
+        /**
+         * @format int32
+         * @pattern ^-?(?:0|[1-9]\d*)$
+         */
+        year?: number | string;
+        /**
+         * @format int32
+         * @pattern ^-?(?:0|[1-9]\d*)$
+         */
+        month?: number | string;
+      },
+      params: RequestParams = {},
+    ) =>
+      this.request<HolidayAccrualResult, any>({
+        path: `/api/users/${userId}/holiday-accrual`,
+        method: "POST",
+        query: query,
+        format: "json",
+        ...params,
+      }),
+
+    /**
+     * No description
+     *
+     * @tags HolidayAccrual
+     * @name UsersHolidayAccrualForecastList
+     * @request GET:/api/users/{userId}/holiday-accrual/forecast
+     */
+    usersHolidayAccrualForecastList: (
+      userId: string,
+      query?: {
+        /** @format date */
+        date?: string;
+      },
+      params: RequestParams = {},
+    ) =>
+      this.request<HolidayAccrualResult, any>({
+        path: `/api/users/${userId}/holiday-accrual/forecast`,
+        method: "GET",
+        query: query,
+        format: "json",
+        ...params,
+      }),
+
+    /**
+     * No description
+     *
+     * @tags HolidayBalances
+     * @name UsersHolidayBalancesList
+     * @request GET:/api/users/{userId}/holiday-balances
+     */
+    usersHolidayBalancesList: (
+      userId: string,
+      query?: {
+        /** @format date */
+        date?: string;
+      },
+      params: RequestParams = {},
+    ) =>
+      this.request<HolidayBalanceResult, any>({
+        path: `/api/users/${userId}/holiday-balances`,
+        method: "GET",
+        query: query,
+        format: "json",
+        ...params,
+      }),
+
+    /**
+     * No description
+     *
+     * @tags HolidayBalances
+     * @name UsersHolidayBalancesAdjustmentsList
+     * @request GET:/api/users/{userId}/holiday-balances/adjustments
+     */
+    usersHolidayBalancesAdjustmentsList: (
+      userId: string,
+      params: RequestParams = {},
+    ) =>
+      this.request<HolidayBalanceAdjustment[], any>({
+        path: `/api/users/${userId}/holiday-balances/adjustments`,
+        method: "GET",
+        format: "json",
+        ...params,
+      }),
+
+    /**
+     * No description
+     *
+     * @tags HolidayBalances
+     * @name UsersHolidayBalancesAdjustmentsCreate
+     * @request POST:/api/users/{userId}/holiday-balances/adjustments
+     */
+    usersHolidayBalancesAdjustmentsCreate: (
+      userId: string,
+      data: HolidayAdjustmentRequest,
+      params: RequestParams = {},
+    ) =>
+      this.request<HolidayBalanceAdjustment, any>({
+        path: `/api/users/${userId}/holiday-balances/adjustments`,
+        method: "POST",
+        body: data,
+        type: ContentType.Json,
+        format: "json",
+        ...params,
+      }),
+
+    /**
+     * No description
+     *
+     * @tags HolidayHours
+     * @name EmploymentsHolidayHoursList
+     * @request GET:/api/employments/{employmentId}/holiday-hours
+     */
+    employmentsHolidayHoursList: (
+      employmentId: string,
+      query?: {
+        /** @format date */
+        startDate?: string;
+        /** @format date */
+        endDate?: string;
+      },
+      params: RequestParams = {},
+    ) =>
+      this.request<HolidayHoursResult, ProblemDetails>({
+        path: `/api/employments/${employmentId}/holiday-hours`,
+        method: "GET",
+        query: query,
+        format: "json",
+        ...params,
+      }),
+
+    /**
+     * No description
+     *
+     * @tags HolidayRules
+     * @name HolidayRulesList
+     * @request GET:/api/holiday-rules
+     */
+    holidayRulesList: (params: RequestParams = {}) =>
+      this.request<HolidayRule[], any>({
+        path: `/api/holiday-rules`,
+        method: "GET",
+        format: "json",
+        ...params,
+      }),
+
+    /**
+     * No description
+     *
+     * @tags HolidayRules
+     * @name HolidayRulesCreate
+     * @request POST:/api/holiday-rules
+     */
+    holidayRulesCreate: (
+      data: CreateHolidayRuleRequest,
+      params: RequestParams = {},
+    ) =>
+      this.request<HolidayRule, ProblemDetails>({
+        path: `/api/holiday-rules`,
+        method: "POST",
+        body: data,
+        type: ContentType.Json,
+        format: "json",
+        ...params,
+      }),
+
+    /**
+     * No description
+     *
+     * @tags HolidayRules
+     * @name HolidayRulesDetail
+     * @request GET:/api/holiday-rules/{id}
+     */
+    holidayRulesDetail: (id: string, params: RequestParams = {}) =>
+      this.request<HolidayRule, any>({
+        path: `/api/holiday-rules/${id}`,
+        method: "GET",
+        format: "json",
+        ...params,
+      }),
+
+    /**
+     * No description
+     *
+     * @tags HolidayRules
+     * @name HolidayRulesPresetsList
+     * @request GET:/api/holiday-rules/presets
+     */
+    holidayRulesPresetsList: (params: RequestParams = {}) =>
+      this.request<HolidayRuleSettings[], any>({
+        path: `/api/holiday-rules/presets`,
+        method: "GET",
+        format: "json",
+        ...params,
+      }),
+
+    /**
+     * No description
+     *
+     * @tags HolidayRules
+     * @name HolidayRulesPeriodsList
+     * @request GET:/api/holiday-rules/{id}/periods
+     */
+    holidayRulesPeriodsList: (
+      id: string,
+      query?: {
+        /**
+         * @format int32
+         * @pattern ^-?(?:0|[1-9]\d*)$
+         */
+        earningYear?: number | string;
+      },
+      params: RequestParams = {},
+    ) =>
+      this.request<HolidayRulePeriodsResult, any>({
+        path: `/api/holiday-rules/${id}/periods`,
+        method: "GET",
+        query: query,
+        format: "json",
+        ...params,
+      }),
+
+    /**
+     * No description
+     *
+     * @tags HolidayRules
+     * @name HolidayRulesForDateList
+     * @request GET:/api/holiday-rules/for-date
+     */
+    holidayRulesForDateList: (
+      query?: {
+        /** @format date */
+        date?: string;
+      },
+      params: RequestParams = {},
+    ) =>
+      this.request<HolidayRule, any>({
+        path: `/api/holiday-rules/for-date`,
+        method: "GET",
+        query: query,
+        format: "json",
         ...params,
       }),
 
@@ -541,6 +1584,144 @@ export class Api<
       this.request<void, any>({
         path: `/api/users/${id}`,
         method: "DELETE",
+        ...params,
+      }),
+
+    /**
+     * No description
+     *
+     * @tags Users
+     * @name UsersReactivateCreate
+     * @request POST:/api/users/{id}/reactivate
+     */
+    usersReactivateCreate: (id: string, params: RequestParams = {}) =>
+      this.request<void, any>({
+        path: `/api/users/${id}/reactivate`,
+        method: "POST",
+        ...params,
+      }),
+
+    /**
+     * No description
+     *
+     * @tags WorkSchedules
+     * @name EmploymentsWorkSchedulesList
+     * @request GET:/api/employments/{employmentId}/work-schedules
+     */
+    employmentsWorkSchedulesList: (
+      employmentId: string,
+      params: RequestParams = {},
+    ) =>
+      this.request<WorkSchedule[], any>({
+        path: `/api/employments/${employmentId}/work-schedules`,
+        method: "GET",
+        format: "json",
+        ...params,
+      }),
+
+    /**
+     * No description
+     *
+     * @tags WorkSchedules
+     * @name EmploymentsWorkSchedulesCreate
+     * @request POST:/api/employments/{employmentId}/work-schedules
+     */
+    employmentsWorkSchedulesCreate: (
+      employmentId: string,
+      data: CreateWorkScheduleRequest,
+      params: RequestParams = {},
+    ) =>
+      this.request<WorkSchedule, ProblemDetails>({
+        path: `/api/employments/${employmentId}/work-schedules`,
+        method: "POST",
+        body: data,
+        type: ContentType.Json,
+        format: "json",
+        ...params,
+      }),
+
+    /**
+     * No description
+     *
+     * @tags WorkSchedules
+     * @name EmploymentsWorkSchedulesForDateList
+     * @request GET:/api/employments/{employmentId}/work-schedules/for-date
+     */
+    employmentsWorkSchedulesForDateList: (
+      employmentId: string,
+      query?: {
+        /** @format date */
+        date?: string;
+      },
+      params: RequestParams = {},
+    ) =>
+      this.request<WorkSchedule, ProblemDetails>({
+        path: `/api/employments/${employmentId}/work-schedules/for-date`,
+        method: "GET",
+        query: query,
+        format: "json",
+        ...params,
+      }),
+
+    /**
+     * No description
+     *
+     * @tags WorkSchedules
+     * @name EmploymentsWorkSchedulesDaysList
+     * @request GET:/api/employments/{employmentId}/work-schedules/{workScheduleId}/days
+     */
+    employmentsWorkSchedulesDaysList: (
+      employmentId: string,
+      workScheduleId: string,
+      params: RequestParams = {},
+    ) =>
+      this.request<WorkScheduleDay[], any>({
+        path: `/api/employments/${employmentId}/work-schedules/${workScheduleId}/days`,
+        method: "GET",
+        format: "json",
+        ...params,
+      }),
+
+    /**
+     * No description
+     *
+     * @tags WorkSchedules
+     * @name EmploymentsWorkSchedulesEndPartialUpdate
+     * @request PATCH:/api/employments/{employmentId}/work-schedules/{workScheduleId}/end
+     */
+    employmentsWorkSchedulesEndPartialUpdate: (
+      employmentId: string,
+      workScheduleId: string,
+      data: EndWorkScheduleRequest,
+      params: RequestParams = {},
+    ) =>
+      this.request<void, ProblemDetails>({
+        path: `/api/employments/${employmentId}/work-schedules/${workScheduleId}/end`,
+        method: "PATCH",
+        body: data,
+        type: ContentType.Json,
+        ...params,
+      }),
+
+    /**
+     * No description
+     *
+     * @tags WorkSchedules
+     * @name EmploymentsWorkSchedulesUpdate
+     * @request PUT:/api/employments/{employmentId}/work-schedules/{workScheduleId}
+     */
+    employmentsWorkSchedulesUpdate: (
+      employmentId: string,
+      workScheduleId: string,
+      data: ChangeWorkScheduleRequest,
+      params: RequestParams = {},
+    ) =>
+      this.request<WorkSchedule, ProblemDetails>({
+        path: `/api/employments/${employmentId}/work-schedules/${workScheduleId}`,
+        method: "PUT",
+        body: data,
+        type: ContentType.Json,
+        format: "json",
         ...params,
       }),
   };
