@@ -3,7 +3,7 @@ import { formatDate, holidayTypeName } from "../utils/format";
 
 type Props = {
     request: HolidayRequest;
-    onCancel: (id: number) => void;
+    onCancel?: (id: number) => void;
 };
 
 const statusText = {
@@ -40,7 +40,7 @@ export function RequestCard({ request, onCancel }: Props) {
             <p><strong>To:</strong> {formatDate(request.end)}</p>
             <p className="text-sm text-slate mt-2">Requested: {formatDate(request.createdAt)}</p>
 
-            {request.status === "pending" && (
+            {onCancel && request.status === "pending" && (
                 <button
                     onClick={() => onCancel(request.id)}
                     className="mt-4 w-full border-2 border-red-600 text-red-600 font-semibold py-2 rounded bg-white hover:bg-red-50"
@@ -49,7 +49,7 @@ export function RequestCard({ request, onCancel }: Props) {
                 </button>
             )}
 
-            {request.status === "approved" && (
+            {onCancel && request.status === "approved" && (
                 <button
                     onClick={() => console.log("TODO: request cancellation for", request.id)}
                     className="mt-4 w-full border-2 border-navy text-navy font-semibold py-2 rounded bg-white hover:bg-cream"

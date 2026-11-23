@@ -15,6 +15,8 @@ import { EmployeeInfo } from "./pages/accounting/EmployeeInfo";
 import { testCurrentEmployee, testRequests } from "./mockdata/testRequest";
 import type { HolidayRequest, RequestStatus } from "./types/holidayRequest";
 import { WorkSchedulePage } from "./pages/accounting/WorkSchedulePage";
+import type { Employee, SchedulePeriod } from "./types/employee";
+import { testEmployees } from "./mockdata/testEmployees";
 import "./index.css";
 
 const userLinks: NavItem[] = [
@@ -41,6 +43,7 @@ export function App() {
     // the employee pages only get the logged-in employee's own requests.
     const [requests, setRequests] = useState<HolidayRequest[]>(testRequests);
     const myRequests = requests.filter(r => r.employeeName === testCurrentEmployee);
+    const [employees, setEmployees] = useState<Employee[]>(testEmployees);
 
     function addRequest(request: HolidayRequest) {
         setRequests([...requests, request]);
@@ -52,6 +55,17 @@ export function App() {
 
     function cancelRequest(id: number) {
         setRequests(requests.map(r => (r.id === id ? { ...r, status: "cancelled" } : r)));
+    }
+
+    function addSchedulePeriod(employeeId: number, period: SchedulePeriod) {
+        setEmployees(employees.map(e => {
+            if (e.id !== employeeId) return e;
+
+            // Replace a period that starts on the same day, then keep the list sorted (oldest first)
+            const others = e.schedules.filter(p => p.validFrom.getTime() !== period.validFrom.getTime());
+            const schedules = [...others, period].sort((a, b) => a.validFrom.getTime() - b.validFrom.getTime());
+            return { ...e, schedules: schedules };
+        }));
     }
     
     function decideRequest(id: number, status: RequestStatus, comment: string) {
@@ -78,10 +92,10 @@ export function App() {
                     </Route>
 
                     <Route path="/accounting" element={<RequireRole role="Accounting"><Layout links={accountingLinks} /></RequireRole>}>
-                        <Route index element={<AccountingMain requests={requests} onDecide={decideRequest} />} />
-                        <Route path="employees" element={<EmployeeList />} />
-                        <Route path="schedule" element={<WorkSchedulePage requests={requests} />} />
-                        <Route path="employeesInfo" element={<EmployeeInfo />} />
+                        <Route index element={<AccountingMain requests={requests} employees={employees} onDecide={decideRequest} />} />
+                        <Route path="employees" element={<EmployeeList employees={employees} requests={requests} />} />
+                        <Route path="schedule" element={<WorkSchedulePage requests={requests} employees={employees} />} />
+                        <Route path="employees/:id" element={<EmployeeInfo employees={employees} requests={requests} onAddSchedule={addSchedulePeriod} />} />
                     </Route>
                 </Routes>
             </AuthProvider>
