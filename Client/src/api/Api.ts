@@ -291,6 +291,70 @@ export interface HolidayHoursResult {
   days?: HolidayHoursDay[];
 }
 
+export interface HolidayRequestDay {
+  /** @format uuid */
+  id?: string;
+  /** @format uuid */
+  requestId?: string;
+  /** @format date */
+  date?: string;
+  /**
+   * @format double
+   * @pattern ^-?(?:0|[1-9]\d*)(?:\.\d+)?$
+   */
+  hours?: number | string;
+  /** @format uuid */
+  employmentId?: string;
+  /** @format uuid */
+  holidayRuleId?: string;
+  /** @format uuid */
+  workScheduleId?: null | string;
+  /** @format uuid */
+  calendarDayId?: null | string;
+  description?: string;
+  basis?: string;
+}
+
+export interface HolidayRequestInput {
+  account?: HolidayAccount;
+  /** @format date */
+  startDate?: string;
+  /** @format date */
+  endDate?: string;
+}
+
+export interface HolidayRequestPreview {
+  /**
+   * @format double
+   * @pattern ^-?(?:0|[1-9]\d*)(?:\.\d+)?$
+   */
+  hours?: number | string;
+  days?: HolidayRequestDay[];
+}
+
+export interface HolidayRequestResponse {
+  /** @format uuid */
+  id?: string;
+  /** @format uuid */
+  userId?: string;
+  email?: string;
+  account?: HolidayAccount;
+  /** @format date */
+  startDate?: string;
+  /** @format date */
+  endDate?: string;
+  /**
+   * @format double
+   * @pattern ^-?(?:0|[1-9]\d*)(?:\.\d+)?$
+   */
+  hours?: number | string;
+  status?: string;
+  /** @format date-time */
+  createdAt?: string;
+  /** @format date-time */
+  withdrawnAt?: null | string;
+}
+
 export interface HolidayRule {
   /** @format uuid */
   id?: string;
@@ -1389,6 +1453,120 @@ export class Api<
         path: `/api/employments/${employmentId}/holiday-hours`,
         method: "GET",
         query: query,
+        format: "json",
+        ...params,
+      }),
+
+    /**
+     * No description
+     *
+     * @tags HolidayRequests
+     * @name HolidayRequestsList
+     * @request GET:/api/holiday-requests
+     */
+    holidayRequestsList: (params: RequestParams = {}) =>
+      this.request<HolidayRequestResponse[], any>({
+        path: `/api/holiday-requests`,
+        method: "GET",
+        format: "json",
+        ...params,
+      }),
+
+    /**
+     * No description
+     *
+     * @tags HolidayRequests
+     * @name HolidayRequestsCreate
+     * @request POST:/api/holiday-requests
+     */
+    holidayRequestsCreate: (
+      data: HolidayRequestInput,
+      params: RequestParams = {},
+    ) =>
+      this.request<HolidayRequestResponse, any>({
+        path: `/api/holiday-requests`,
+        method: "POST",
+        body: data,
+        type: ContentType.Json,
+        format: "json",
+        ...params,
+      }),
+
+    /**
+     * No description
+     *
+     * @tags HolidayRequests
+     * @name HolidayRequestsPendingList
+     * @request GET:/api/holiday-requests/pending
+     */
+    holidayRequestsPendingList: (params: RequestParams = {}) =>
+      this.request<HolidayRequestResponse[], any>({
+        path: `/api/holiday-requests/pending`,
+        method: "GET",
+        format: "json",
+        ...params,
+      }),
+
+    /**
+     * No description
+     *
+     * @tags HolidayRequests
+     * @name HolidayRequestsDetail
+     * @request GET:/api/holiday-requests/{id}
+     */
+    holidayRequestsDetail: (id: string, params: RequestParams = {}) =>
+      this.request<HolidayRequestResponse, any>({
+        path: `/api/holiday-requests/${id}`,
+        method: "GET",
+        format: "json",
+        ...params,
+      }),
+
+    /**
+     * No description
+     *
+     * @tags HolidayRequests
+     * @name HolidayRequestsDelete
+     * @request DELETE:/api/holiday-requests/{id}
+     */
+    holidayRequestsDelete: (id: string, params: RequestParams = {}) =>
+      this.request<void, any>({
+        path: `/api/holiday-requests/${id}`,
+        method: "DELETE",
+        ...params,
+      }),
+
+    /**
+     * No description
+     *
+     * @tags HolidayRequests
+     * @name HolidayRequestsDaysList
+     * @request GET:/api/holiday-requests/{id}/days
+     */
+    holidayRequestsDaysList: (id: string, params: RequestParams = {}) =>
+      this.request<HolidayRequestDay[], any>({
+        path: `/api/holiday-requests/${id}/days`,
+        method: "GET",
+        format: "json",
+        ...params,
+      }),
+
+    /**
+     * No description
+     *
+     * @tags HolidayRequests
+     * @name HolidayRequestsPreviewCreate
+     * @request POST:/api/holiday-requests/preview
+     */
+    holidayRequestsPreviewCreate: (
+      data: HolidayRequestInput,
+      params: RequestParams = {},
+    ) =>
+      this.request<HolidayRequestPreview, any>({
+        path: `/api/holiday-requests/preview`,
+        method: "POST",
+        body: data,
+        type: ContentType.Json,
         format: "json",
         ...params,
       }),
