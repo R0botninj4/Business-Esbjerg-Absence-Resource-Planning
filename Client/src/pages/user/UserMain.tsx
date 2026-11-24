@@ -2,6 +2,8 @@ import { Link } from "react-router";
 
 import { InfoBox } from "../../components/infoBox";
 import { RequestCard } from "../../components/requestCard";
+import { PostedBalance } from "../../components/postedBalance";
+import { useAuth } from "../../components/auth";
 
 import type { HolidayRequest } from "../../types/holidayRequest";
 import { formatDate } from "../../utils/format";
@@ -14,6 +16,7 @@ type Props = {
 };
 
 export function UserMain({ requests, onCancel, events }: Props) {
+    const { user } = useAuth();
     const latest = [...requests]
         .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
         .slice(0, 5);
@@ -38,8 +41,7 @@ export function UserMain({ requests, onCancel, events }: Props) {
             </div>
 
             <div className="mb-6 bg-white border border-line rounded p-6">
-                <h2 className="text-xl">Holiday balance</h2>
-                <p className="text-slate">Your available holiday balance is not available yet.</p>
+                {user && <PostedBalance userId={user.id} />}
             </div>
             {/* Info boxes */}
             <div className="grid grid-cols-3 gap-6 mb-8">

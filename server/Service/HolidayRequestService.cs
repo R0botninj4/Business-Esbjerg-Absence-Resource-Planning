@@ -29,21 +29,31 @@ public class HolidayRequestService
             .OrderBy(request => request.CreatedAt).ToArray();
     }
 
+    public HolidayRequest[] GetForAccounting()
+    {
+        return db.HolidayRequests.OrderBy(request => request.CreatedAt).ToArray();
+    }
+
     public HolidayRequest? FindOwn(Guid userId, Guid requestId)
     {
         return db.HolidayRequests.SingleOrDefault(request => request.Id == requestId && request.UserId == userId);
     }
 
+    public HolidayRequest? Find(Guid requestId)
+    {
+        return db.HolidayRequests.SingleOrDefault(request => request.Id == requestId);
+    }
+
     public HolidayRequestDay[] GetDays(Guid requestId)
     {
-        return db.HolidayRequestDays.Where(day => day.RequestId == requestId && day.Basis == "submission")
+        return db.HolidayRequestDays.Where(day => day.RequestId == requestId)
             .OrderBy(day => day.Date).ToArray();
     }
 
-    public HolidayRequestPreview Preview(Guid userId, HolidayRequestInput input)
+    public HolidayRequestPreview Preview(Guid userId, HolidayRequestInput input, Guid? ignoredRequestId = null)
     {
         ValidateDates(input);
-        CheckOverlap(userId, input);
+        CheckOverlap(userId, input, ignoredRequestId);
         var result = new HolidayRequestPreview();
         var employments = db.Employments.Where(employment => employment.UserId == userId).ToArray();
         var date = input.StartDate;
@@ -174,9 +184,10 @@ public class HolidayRequestService
         }
     }
 
-    private void CheckOverlap(Guid userId, HolidayRequestInput input)
+    private void CheckOverlap(Guid userId, HolidayRequestInput input, Guid? ignoredRequestId)
     {
         bool overlaps = db.HolidayRequests.Any(request => request.UserId == userId &&
+            request.Id != ignoredRequestId &&
             (request.Status == "pending" || request.Status == "approved") &&
             request.StartDate <= input.EndDate && request.EndDate >= input.StartDate);
         if (overlaps)

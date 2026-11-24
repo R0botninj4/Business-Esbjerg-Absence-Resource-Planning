@@ -16,6 +16,7 @@ builder.Services.AddScoped<EmploymentService>();
 builder.Services.AddScoped<WorkScheduleService>();
 builder.Services.AddScoped<HolidayHoursService>();
 builder.Services.AddScoped<HolidayRequestService>();
+builder.Services.AddScoped<HolidayDecisionService>();
 builder.Services.AddScoped<CalendarService>();
 builder.Services.AddScoped<HolidayRuleService>();
 builder.Services.AddScoped<HolidayAccrualService>();

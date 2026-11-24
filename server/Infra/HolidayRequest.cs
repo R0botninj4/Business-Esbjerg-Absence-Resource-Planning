@@ -14,4 +14,7 @@ public class HolidayRequest
     [Column("status")] public string Status { get; set; } = "pending";
     [Column("created_at")] public DateTime CreatedAt { get; set; }
     [Column("withdrawn_at"), Nullable] public DateTime? WithdrawnAt { get; set; }
+    [Column("decided_at"), Nullable] public DateTime? DecidedAt { get; set; }
+    [Column("decided_by"), Nullable] public Guid? DecidedBy { get; set; }
+    [Column("decision_comment")] public string DecisionComment { get; set; } = "";
 }

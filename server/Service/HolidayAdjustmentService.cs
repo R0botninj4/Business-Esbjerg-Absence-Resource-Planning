@@ -1,5 +1,6 @@
 using Infra;
 using LinqToDB;
+using LinqToDB.Data;
 
 namespace Service;
 
@@ -25,6 +26,9 @@ public class HolidayAdjustmentService
         CheckInput(request);
         // En transaktion gemmer hele rettelsen samlet eller slet ikke.
         using var transaction = db.BeginTransaction();
+        // Samme lås som feriegodkendelse, så saldoen ikke ændres midt i en afgørelse.
+        db.Query<Guid>("SELECT id FROM users WHERE id=@id FOR UPDATE",
+            new DataParameter("id", userId)).ToArray();
 
         var existing = FindExistingAdjustment(userId, request);
         if (existing != null)

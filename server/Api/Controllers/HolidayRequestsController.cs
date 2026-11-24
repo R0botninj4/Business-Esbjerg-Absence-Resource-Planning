@@ -13,11 +13,13 @@ public class HolidayRequestsController : ControllerBase
 {
     private readonly HolidayRequestService requests;
     private readonly UserService users;
+    private readonly HolidayDecisionService decisions;
 
-    public HolidayRequestsController(HolidayRequestService requestService, UserService userService)
+    public HolidayRequestsController(HolidayRequestService requestService, UserService userService, HolidayDecisionService decisionService)
     {
         requests = requestService;
         users = userService;
+        decisions = decisionService;
     }
 
     private Guid CurrentUserId()
@@ -40,11 +42,22 @@ public class HolidayRequestsController : ControllerBase
         return requests.GetPending().Select(ToResponse);
     }
 
+    [HttpGet("review")]
+    [Authorize(Roles = "Accounting")]
+    public IEnumerable<HolidayRequestResponse> GetForAccounting()
+    {
+        return requests.GetForAccounting().Select(ToResponse);
+    }
+
     [HttpGet("{id:guid}")]
-    [Authorize(Roles = "Employee")]
+    [Authorize(Roles = "Employee,Accounting")]
     public ActionResult<HolidayRequestResponse> Get(Guid id)
     {
         var request = requests.FindOwn(CurrentUserId(), id);
+        if (User.IsInRole("Accounting"))
+        {
+            request = requests.Find(id);
+        }
         if (request == null)
         {
             return NotFound();
@@ -53,14 +66,41 @@ public class HolidayRequestsController : ControllerBase
     }
 
     [HttpGet("{id:guid}/days")]
-    [Authorize(Roles = "Employee")]
+    [Authorize(Roles = "Employee,Accounting")]
     public ActionResult<HolidayRequestDay[]> GetDays(Guid id)
     {
-        if (requests.FindOwn(CurrentUserId(), id) == null)
+        if (requests.Find(id) == null)
+        {
+            return NotFound();
+        }
+        if (requests.FindOwn(CurrentUserId(), id) == null && !User.IsInRole("Accounting"))
         {
             return NotFound();
         }
         return Ok(requests.GetDays(id));
+    }
+
+    [HttpPost("{id:guid}/decision")]
+    [Authorize(Roles = "Accounting")]
+    public ActionResult<HolidayRequestResponse> Decide(Guid id, HolidayDecisionInput input)
+    {
+        try
+        {
+            var request = decisions.Decide(id, CurrentUserId(), input);
+            if (request == null)
+            {
+                return NotFound();
+            }
+            return Ok(ToResponse(request));
+        }
+        catch (ArgumentException exception)
+        {
+            return BadRequest(new { message = exception.Message });
+        }
+        catch (HolidayRequestConflictException exception)
+        {
+            return Conflict(new { message = exception.Message });
+        }
     }
 
     [HttpPost("preview")]
@@ -131,6 +171,9 @@ public class HolidayRequestsController : ControllerBase
         response.Status = request.Status;
         response.CreatedAt = request.CreatedAt;
         response.WithdrawnAt = request.WithdrawnAt;
+        response.DecidedAt = request.DecidedAt;
+        response.DecidedBy = request.DecidedBy;
+        response.Comment = request.DecisionComment;
         return response;
     }
 
@@ -146,5 +189,8 @@ public class HolidayRequestsController : ControllerBase
         public string Status { get; set; } = "";
         public DateTime CreatedAt { get; set; }
         public DateTime? WithdrawnAt { get; set; }
+        public DateTime? DecidedAt { get; set; }
+        public Guid? DecidedBy { get; set; }
+        public string Comment { get; set; } = "";
     }
 }
