@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useSearchParams } from "react-router";
 import { Calendar } from "../../components/calendar";
 import { RequestCard } from "../../components/requestCard";
 import type { HolidayRequest, HolidayType } from "../../types/holidayRequest";
@@ -6,12 +7,17 @@ import { formatDate, holidayTypeName } from "../../utils/format";
 import { previewHolidayRequest, type NewHolidayRequest } from "../../api/holidayRequests";
 import { userError } from "../../api/users";
 import type { CalendarEvent } from "../../types/calendarEvent";
+import type { SicknessReport } from "../../types/sicknessReport";
+import { SicknessForm } from "../../components/sicknessForm";
+import { SicknessList } from "../../components/sicknessList";
 
 type Props = {
     requests: HolidayRequest[];
     onAdd: (request: NewHolidayRequest) => Promise<void>;
     onCancel: (id: string) => Promise<void>;
     events: CalendarEvent[];
+    sicknessReports: SicknessReport[];
+    onReportSickness: (report: SicknessReport) => void;
 };
 
 function toInputValue(date: Date | null) {
@@ -25,10 +31,13 @@ function fromInputValue(value: string) {
     return value ? new Date(value + "T00:00") : null;
 }
 
-export function RequestPage({ requests, onAdd, onCancel, events }: Props) {
+export function RequestPage({ requests, onAdd, onCancel, events, sicknessReports, onReportSickness }: Props) {
+    const [searchParams] = useSearchParams();
     const [start, setStart] = useState<Date | null>(null);
     const [end, setEnd] = useState<Date | null>(null);
     const [holidayType, setHolidayType] = useState<HolidayType>("weeks1to5");
+    // true when "Sickness" is chosen. The link "Report sickness" on the overview opens the page with ?mode=sickness
+    const [sickness, setSickness] = useState(searchParams.get("mode") === "sickness");
     const [hours, setHours] = useState<number | null>(null);
     const [calculating, setCalculating] = useState(false);
     const [saving, setSaving] = useState(false);
@@ -39,15 +48,15 @@ export function RequestPage({ requests, onAdd, onCancel, events }: Props) {
         let cancelled = false;
         setHours(null);
         setError("");
-        if (!start || !end) { setCalculating(false); return; }
+        if (!start || !end || sickness) { setCalculating(false); return; }
         setCalculating(true);
         previewHolidayRequest({ account: holidayType === "weeks1to5" ? 1 : 2, startDate: toInputValue(start), endDate: toInputValue(end) })
             .then(preview => { if (!cancelled) setHours(Number(preview.hours)); })
             .catch(error => { if (!cancelled) setError(userError(error)); })
             .finally(() => { if (!cancelled) setCalculating(false); });
         return () => { cancelled = true; };
-    }, [start, end, holidayType, requests]);
-    
+    }, [start, end, holidayType, requests, sickness]);
+
     const pendingRequests = requests.filter(r => r.status === "pending");
     const bookedRequests = requests.filter(r => r.status === "pending" || r.status === "approved");
 
@@ -60,6 +69,24 @@ export function RequestPage({ requests, onAdd, onCancel, events }: Props) {
         } else {
             setEnd(day);
         }
+    }
+
+    // Change between holiday and sickness, and start over with the dates
+    function chooseHolidayType(type: HolidayType) {
+        setHolidayType(type);
+        setSickness(false);
+    }
+
+    function chooseSickness() {
+        setSickness(true);
+        setStart(null);
+        setEnd(null);
+    }
+
+    function handleReportSickness(report: SicknessReport) {
+        onReportSickness(report);
+        setStart(null);
+        setEnd(null);
     }
 
     function handleStartInput(value: string) {
@@ -96,18 +123,25 @@ export function RequestPage({ requests, onAdd, onCancel, events }: Props) {
                 <div className="col-span-2">
                     <div className="flex gap-2 mb-6">
                         <button
-                            onClick={() => setHolidayType("weeks1to5")}
+                            onClick={() => chooseHolidayType("weeks1to5")}
                             className={"px-4 py-2 rounded border border-navy font-semibold " +
-                                (holidayType === "weeks1to5" ? "bg-navy text-white" : "bg-white")}
+                                (!sickness && holidayType === "weeks1to5" ? "bg-navy text-white" : "bg-white")}
                         >
                             Week 1–5
                         </button>
                         <button
-                            onClick={() => setHolidayType("week6")}
+                            onClick={() => chooseHolidayType("week6")}
                             className={"px-4 py-2 rounded border border-navy font-semibold " +
-                                (holidayType === "week6" ? "bg-navy text-white" : "bg-white")}
+                                (!sickness && holidayType === "week6" ? "bg-navy text-white" : "bg-white")}
                         >
                             Week 6
+                        </button>
+                        <button
+                            onClick={chooseSickness}
+                            className={"ml-4 px-4 py-2 rounded border border-orange font-semibold " +
+                                (sickness ? "bg-orange text-white" : "bg-white text-orange")}
+                        >
+                            Sickness
                         </button>
                     </div>
 
@@ -143,30 +177,50 @@ export function RequestPage({ requests, onAdd, onCancel, events }: Props) {
                     </div>
                 </div>
 
-                {/* Request Card */}
-                <div className="ml-12 pl-12 border-l-2 border-line space-y-4">
-                    {pendingRequests.map(request => (
-                        <RequestCard key={request.id} request={request} onCancel={onCancel} />
-                    ))}
-
-                    <div className="bg-white border border-line rounded p-6 border-b-4 border-b-orange">
-                        <h2 className="text-2xl mb-4">New request</h2>
-                        <p><strong>Holiday type:</strong> {holidayTypeName(holidayType)}</p>
-                        <p><strong>From:</strong> {formatDate(start)}</p>
-                        <p><strong>To:</strong> {formatDate(end)}</p>
-
-                        <p className="mt-3"><strong>Requested hours:</strong> {calculating ? "Calculating..." : hours === null ? "–" : hours.toFixed(2) + " h"}</p>
-                        <p className="text-sm text-slate mt-2">Submitting a request does not approve the holiday or deduct hours from your balance.</p>
-                        {error && <p role="alert" className="text-red-600 mt-3">{error}</p>}
-                        <button
-                            onClick={() => void handleConfirm()}
-                            disabled={!start || !end || hours === null || calculating || saving}
-                            className="mt-6 w-full bg-orange-light text-white font-semibold px-6 py-3 rounded hover:bg-orange disabled:opacity-40 disabled:cursor-not-allowed"
-                        >
-                            {saving ? "Saving..." : "Confirm request"}
-                        </button>
+                {/* Right side when "Sickness" is chosen */}
+                {sickness && (
+                    <div className="ml-12 pl-12 border-l-2 border-line space-y-4">
+                        <SicknessForm
+                            start={start}
+                            end={end}
+                            holidays={bookedRequests}
+                            reports={sicknessReports}
+                            events={events}
+                            onReport={handleReportSickness}
+                        />
+                        <div className="bg-white border border-line rounded p-6">
+                            <h2 className="text-sm font-semibold uppercase tracking-wide text-slate mb-3">Your sickness reports</h2>
+                            <SicknessList reports={sicknessReports} />
+                        </div>
                     </div>
-                </div>
+                )}
+
+                {/* Request Card */}
+                {!sickness && (
+                    <div className="ml-12 pl-12 border-l-2 border-line space-y-4">
+                        {pendingRequests.map(request => (
+                            <RequestCard key={request.id} request={request} onCancel={onCancel} />
+                        ))}
+
+                        <div className="bg-white border border-line rounded p-6 border-b-4 border-b-orange">
+                            <h2 className="text-2xl mb-4">New request</h2>
+                            <p><strong>Holiday type:</strong> {holidayTypeName(holidayType)}</p>
+                            <p><strong>From:</strong> {formatDate(start)}</p>
+                            <p><strong>To:</strong> {formatDate(end)}</p>
+
+                            <p className="mt-3"><strong>Requested hours:</strong> {calculating ? "Calculating..." : hours === null ? "–" : hours.toFixed(2) + " h"}</p>
+                            <p className="text-sm text-slate mt-2">Submitting a request does not approve the holiday or deduct hours from your balance.</p>
+                            {error && <p role="alert" className="text-red-600 mt-3">{error}</p>}
+                            <button
+                                onClick={() => void handleConfirm()}
+                                disabled={!start || !end || hours === null || calculating || saving}
+                                className="mt-6 w-full bg-orange-light text-white font-semibold px-6 py-3 rounded hover:bg-orange disabled:opacity-40 disabled:cursor-not-allowed"
+                            >
+                                {saving ? "Saving..." : "Confirm request"}
+                            </button>
+                        </div>
+                    </div>
+                )}
             </div>
         </div>
     );

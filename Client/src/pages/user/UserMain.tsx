@@ -4,18 +4,20 @@ import { InfoBox } from "../../components/infoBox";
 import { RequestCard } from "../../components/requestCard";
 import { PostedBalance } from "../../components/postedBalance";
 import { useAuth } from "../../components/auth";
-
 import type { HolidayRequest } from "../../types/holidayRequest";
 import { formatDate } from "../../utils/format";
 import type { CalendarEvent } from "../../types/calendarEvent";
+import type { SicknessReport } from "../../types/sicknessReport";
+import { SicknessList } from "../../components/sicknessList";
 
 type Props = {
     requests: HolidayRequest[];
     onCancel: (id: string) => Promise<void>;
     events: CalendarEvent[];
+    sicknessReports: SicknessReport[];
 };
 
-export function UserMain({ requests, onCancel, events }: Props) {
+export function UserMain({ requests, onCancel, events, sicknessReports }: Props) {
     const { user } = useAuth();
     const latest = [...requests]
         .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
@@ -59,7 +61,13 @@ export function UserMain({ requests, onCancel, events }: Props) {
                 </InfoBox>
 
                 <InfoBox title="Ill before or during holiday?">
-                    {/* TODO: decide what goes here */}
+                    <p className="text-slate mb-3">
+                        If you are sick on days you have booked holiday, report it. Accounting checks it and can give the hours back.
+                    </p>
+                    <SicknessList reports={sicknessReports} />
+                    <Link to="/user/request?mode=sickness" className="block mt-3 font-semibold hover:text-orange">
+                        Report sickness →
+                    </Link>
                 </InfoBox>
             </div>
 
