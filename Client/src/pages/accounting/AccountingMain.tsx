@@ -1,4 +1,6 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { userError } from "../../api/users";
+import { PostedBalance } from "../../components/postedBalance";
 import { WorkSchedule } from "../../components/workSchedule";
 import { SicknessReview } from "../../components/sicknessReview";
 import { useEmployees } from "../../components/employeeData";
@@ -10,14 +12,19 @@ import type { CalendarEvent } from "../../types/calendarEvent";
 type Props = {
     requests: HolidayRequest[];
     events: CalendarEvent[];
+    onDecide: (id: string, approve: boolean, comment: string) => Promise<void>;
     sicknessReports: SicknessReport[];
     onDecideSickness: (id: number, status: SicknessStatus, refundedHours: number, comment: string) => void;
 };
 
-export function AccountingMain({ requests, events, sicknessReports, onDecideSickness }: Props) {
+export function AccountingMain({ requests, events, onDecide, sicknessReports, onDecideSickness }: Props) {
     const [selectedId, setSelectedId] = useState<string | null>(null);
     const [selectedSicknessId, setSelectedSicknessId] = useState<number | null>(null);
     const { employees } = useEmployees();
+    const [comment, setComment] = useState("");
+    const [saving, setSaving] = useState(false);
+    const [error, setError] = useState("");
+    const [success, setSuccess] = useState("");
 
     const pending = requests
         .filter(r => r.status === "pending")
@@ -35,6 +42,32 @@ export function AccountingMain({ requests, events, sicknessReports, onDecideSick
         selectedSickness = pendingSickness[0];
     }
 
+    useEffect(() => {
+        setComment("");
+        setError("");
+    }, [selected?.id]);
+
+    async function decide(approve: boolean) {
+        if (!selected || saving) {
+            return;
+        }
+        setSaving(true);
+        setError("");
+        setSuccess("");
+        try {
+            await onDecide(selected.id, approve, comment);
+            if (approve) {
+                setSuccess("The request has been approved and the hours reserved.");
+            } else {
+                setSuccess("The request has been declined.");
+            }
+        } catch (error) {
+            setError(userError(error));
+        } finally {
+            setSaving(false);
+        }
+    }
+
     function selectRequest(id: string) {
         setSelectedId(id);
         setSelectedSicknessId(null);
@@ -44,6 +77,7 @@ export function AccountingMain({ requests, events, sicknessReports, onDecideSick
         return (
             <div>
                 <h1 className="text-3xl mb-2">Approvals</h1>
+                {success && <p role="status" className="mb-3">{success}</p>}
                 <p className="text-slate">No requests waiting. </p>
             </div>
         );
@@ -52,6 +86,7 @@ export function AccountingMain({ requests, events, sicknessReports, onDecideSick
     return (
         <div>
             <h1 className="text-3xl">Approvals</h1>
+            {success && <p role="status" className="mt-3">{success}</p>}
             <p className="text-slate mb-6">{pending.length + pendingSickness.length} requests waiting - oldest first</p>
 
             <div className="grid grid-cols-4 gap-6 items-start">
@@ -60,6 +95,7 @@ export function AccountingMain({ requests, events, sicknessReports, onDecideSick
                     {pending.map(request => (
                         <button
                             key={request.id}
+                            disabled={saving}
                             onClick={() => selectRequest(request.id)}
                             className={"w-full text-left bg-white rounded p-4 border-2 " +
                                 (request.id === selected?.id ? "border-orange" : "border-line hover:border-orange/40")}
@@ -79,6 +115,7 @@ export function AccountingMain({ requests, events, sicknessReports, onDecideSick
                     {pendingSickness.map(report => (
                         <button
                             key={report.id}
+                            disabled={saving}
                             onClick={() => setSelectedSicknessId(report.id)}
                             className={"w-full text-left bg-white rounded p-4 border-2 " +
                                 (report.id === selectedSickness?.id ? "border-orange" : "border-line hover:border-orange/40")}
@@ -122,7 +159,20 @@ export function AccountingMain({ requests, events, sicknessReports, onDecideSick
                             </div>
 
                             <p className="mt-4"><strong>Requested hours:</strong> {selected.hours.toFixed(2)} h</p>
-                            <p className="mt-3 text-slate">Requests can be viewed here. Approval and rejection will be available later.</p>
+                            <div className="mt-4"><PostedBalance key={selected.id} userId={selected.employeeId} /></div>
+                            <p className="mt-3 text-slate">Approval currently requires enough posted hours. Holiday debt, forecast earnings and balance conversion are not connected yet.</p>
+                            <label className="block mt-4">
+                                Comment (required when declining)
+                                <textarea value={comment} maxLength={500} disabled={saving} onChange={event => setComment(event.target.value)} className="block w-full mt-1 border border-line rounded p-2" />
+                            </label>
+                            {error && <div role="alert" className="mt-3 text-red-600">
+                                <p>{error}</p>
+                                <button onClick={() => window.location.reload()} className="underline">Reload requests and balance</button>
+                            </div>}
+                            <div className="flex gap-3 mt-4">
+                                <button disabled={saving} onClick={() => void decide(true)} className="bg-navy text-white rounded px-5 py-2 disabled:opacity-40">{saving ? "Saving..." : "Approve"}</button>
+                                <button disabled={saving || !comment.trim()} onClick={() => void decide(false)} className="border border-orange text-orange rounded px-5 py-2 disabled:opacity-40">Decline</button>
+                            </div>
                         </div>
 
                         <WorkSchedule employees={employees} requests={requests} events={events} selected={selected} />
