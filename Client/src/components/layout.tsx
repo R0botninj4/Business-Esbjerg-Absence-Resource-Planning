@@ -1,6 +1,7 @@
 ﻿import { NavLink, Outlet, useNavigate } from "react-router";
 import { useAuth } from "./auth";
 import logo from "../assets/logo.svg";
+import { displayName } from "../utils/format";
 
 export type NavItem = {
     to: string;
@@ -38,7 +39,7 @@ export function Layout({ links }: Props) {
                     </NavLink>
                 ))}
 
-                <span className="ml-auto pb-2 text-slate">{user?.email}</span>
+                <span className="ml-auto pb-2 text-slate">{displayName(user?.email ?? "")}</span>
                 <button onClick={handleLogout} className="pb-2 font-semibold hover:text-orange">
                     Log out
                 </button>

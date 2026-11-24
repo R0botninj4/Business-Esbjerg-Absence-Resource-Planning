@@ -1,6 +1,6 @@
 ﻿import { useState } from "react";
 import type { SicknessReport, SicknessStatus } from "../types/sicknessReport";
-import { formatDate, holidayTypeName } from "../utils/format";
+import { formatDate, holidayTypeName, displayName } from "../utils/format";
 import { suggestedRefund, totalHours } from "../utils/sickness";
 
 type Props = {
@@ -38,7 +38,7 @@ export function SicknessReview({ report, allReports, onDecide }: Props) {
     return (
         <div className="bg-white border border-line rounded p-6 border-b-4 border-b-orange">
             <p className="text-sm font-semibold uppercase tracking-wide text-slate">Sickness report from</p>
-            <h2 className="text-3xl">{report.employeeName}</h2>
+            <h2 className="text-3xl">{displayName(report.employeeName)}</h2>
 
             <div className="flex gap-10 mt-3">
                 <p><strong>Holiday type:</strong> {holidayTypeName(report.holidayType)}</p>
