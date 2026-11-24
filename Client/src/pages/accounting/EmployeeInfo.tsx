@@ -6,7 +6,7 @@ import { useEmployees } from "../../components/employeeData";
 import { getEmployments, userError } from "../../api/users";
 import { saveSchedule } from "../../api/schedules";
 import type { SchedulePeriod } from "../../types/employee";
-import { formatDate } from "../../utils/format";
+import { formatDate, displayName } from "../../utils/format";
 import { employmentText, hoursOfDay, scheduleOn, weekdayNames } from "../../utils/schedule";
 import type { CalendarEvent } from "../../types/calendarEvent";
 
@@ -46,7 +46,7 @@ export function EmployeeInfo({ events }: { events: CalendarEvent[] }) {
 
     return <div>
         <Link to="../employees" className="font-semibold">← All employees</Link>
-        <h1 className="text-3xl mt-4 mb-4">{employee.email}</h1>
+        <h1 className="text-3xl mt-4 mb-4">{displayName(employee.email)}</h1>
         {success && <p role="status" className="mb-4">{success}</p>}
         {error && <p role="alert" className="mb-4 text-red-600">{error}</p>}
         <div className="bg-white border border-line rounded p-6 mb-6">

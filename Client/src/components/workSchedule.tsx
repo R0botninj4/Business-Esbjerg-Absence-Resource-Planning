@@ -3,7 +3,7 @@ import type { CalendarEvent } from "../types/calendarEvent";
 import type { Employee } from "../types/employee";
 import type { HolidayRequest } from "../types/holidayRequest";
 import { mondayOfWeek, startOfWeek, weekdayIndex, weekNumber, weekYear } from "../utils/dates";
-import { formatDate } from "../utils/format";
+import { formatDate, displayName } from "../utils/format";
 import { scheduleOn } from "../utils/schedule";
 
 type Props = {
@@ -141,7 +141,7 @@ export function WorkSchedule({ employees, requests, events, selected }: Props) {
                 {employees.map(employee => (
                     <tr key={employee.name}>
                             <td className={"pr-2 " + (String(employee.id) === selected?.employeeId ? "font-bold" : "")}>
-                            {employee.name}
+                            {displayName(employee.name)}
                         </td>
                         {days.map(day => {
                             const cell = getCell(employee, day);

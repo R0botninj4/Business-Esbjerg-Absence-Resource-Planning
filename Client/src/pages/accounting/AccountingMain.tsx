@@ -4,7 +4,7 @@ import { SicknessReview } from "../../components/sicknessReview";
 import { useEmployees } from "../../components/employeeData";
 import type { HolidayRequest } from "../../types/holidayRequest";
 import type { SicknessReport, SicknessStatus } from "../../types/sicknessReport";
-import { formatDate, holidayTypeName } from "../../utils/format";
+import { formatDate, holidayTypeName, displayName } from "../../utils/format";
 import type { CalendarEvent } from "../../types/calendarEvent";
 
 type Props = {
@@ -65,7 +65,7 @@ export function AccountingMain({ requests, events, sicknessReports, onDecideSick
                                 (request.id === selected?.id ? "border-orange" : "border-line hover:border-orange/40")}
                         >
                             <div className="flex justify-between items-start">
-                                <span className="font-semibold text-lg">{request.employeeName}</span>
+                                <span className="font-semibold text-lg">{displayName(request.employeeName)}</span>
                                 <span className="text-xs font-semibold bg-navy/10 px-2 py-1 rounded-full">
                                     {holidayTypeName(request.holidayType)}
                                 </span>
@@ -84,7 +84,7 @@ export function AccountingMain({ requests, events, sicknessReports, onDecideSick
                                 (report.id === selectedSickness?.id ? "border-orange" : "border-line hover:border-orange/40")}
                         >
                             <div className="flex justify-between items-start">
-                                <span className="font-semibold text-lg">{report.employeeName}</span>
+                                <span className="font-semibold text-lg">{displayName(report.employeeName)}</span>
                                 <span className="text-xs font-semibold text-white bg-orange px-2 py-1 rounded-full">
                                     Sickness
                                 </span>
@@ -112,7 +112,7 @@ export function AccountingMain({ requests, events, sicknessReports, onDecideSick
                     <div className="col-span-3 space-y-6">
                         <div className="bg-white border border-line rounded p-6 border-b-4 border-b-orange">
                             <p className="text-sm font-semibold uppercase tracking-wide text-slate">Request from</p>
-                            <h2 className="text-3xl">{selected.employeeName}</h2>
+                            <h2 className="text-3xl">{displayName(selected.employeeName)}</h2>
 
                             <div className="flex gap-10 mt-3">
                                 <p><strong>Holiday type:</strong> {holidayTypeName(selected.holidayType)}</p>
