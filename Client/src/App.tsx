@@ -12,7 +12,7 @@ import { Users } from "./pages/admin/Users";
 import { AccountingMain } from "./pages/accounting/AccountingMain";
 import { EmployeeList } from "./pages/accounting/EmployeeList";
 import { EmployeeInfo } from "./pages/accounting/EmployeeInfo";
-import { createHolidayRequest, getHolidayRequests, withdrawHolidayRequest, type NewHolidayRequest } from "./api/holidayRequests";
+import { createHolidayRequest, getHolidayRequests, withdrawHolidayRequest, decideHolidayRequest, type NewHolidayRequest } from "./api/holidayRequests";
 import { userError } from "./api/users";
 import type { HolidayRequest } from "./types/holidayRequest";
 import { WorkSchedulePage } from "./pages/accounting/WorkSchedulePage";
@@ -123,6 +123,11 @@ function AppRoutes({ sicknessReports, onReportSickness, onDecideSickness }: Sick
         await withdrawHolidayRequest(id);
         setRequests(current => current.map(request => request.id === id ? { ...request, status: "cancelled" } : request));
     }
+
+    async function decideRequest(id: string, approve: boolean, comment: string) {
+        const saved = await decideHolidayRequest(id, approve, comment);
+        setRequests(current => current.map(request => request.id === id ? saved : request));
+    }
     return (
         <>
             {requestsLoading && <p role="status" className="p-4">Loading requests...</p>}
@@ -149,7 +154,7 @@ function AppRoutes({ sicknessReports, onReportSickness, onDecideSickness }: Sick
                 </Route>
 
                 <Route path="/accounting" element={<RequireRole role="Accounting"><Layout links={accountingLinks} /></RequireRole>}>
-                    <Route index element={<EmployeeProvider><AccountingMain requests={requests} events={events} sicknessReports={sicknessReports} onDecideSickness={onDecideSickness} /></EmployeeProvider>} />
+                    <Route index element={<EmployeeProvider><AccountingMain requests={requests} events={events} onDecide={decideRequest} sicknessReports={sicknessReports} onDecideSickness={onDecideSickness} /></EmployeeProvider>} />
                     <Route path="employees" element={<EmployeeProvider><EmployeeList /></EmployeeProvider>} />
                     <Route path="schedule" element={<EmployeeProvider><WorkSchedulePage events={events} /></EmployeeProvider>} />
                     <Route path="employees/:id" element={<EmployeeProvider><EmployeeInfo events={events} /></EmployeeProvider>} />
