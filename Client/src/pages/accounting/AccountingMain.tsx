@@ -1,51 +1,26 @@
 import { useState } from "react";
 import { WorkSchedule } from "../../components/workSchedule";
-import type { Employee } from "../../types/employee";
-import type { HolidayRequest, RequestStatus } from "../../types/holidayRequest";
+import { useEmployees } from "../../components/employeeData";
+import type { HolidayRequest } from "../../types/holidayRequest";
 import { formatDate, holidayTypeName } from "../../utils/format";
 import type { CalendarEvent } from "../../types/calendarEvent";
 
 type Props = {
     requests: HolidayRequest[];
-    onDecide: (id: number, status: RequestStatus, comment: string) => void;
-    employees: Employee[];
+
     events: CalendarEvent[];
 };
 
-export function AccountingMain({ requests, onDecide, employees, events }: Props) {
-    const [selectedId, setSelectedId] = useState<number | null>(null);
-    const [comment, setComment] = useState("");
-    const [error, setError] = useState("");
+export function AccountingMain({ requests, events }: Props) {
+    const [selectedId, setSelectedId] = useState<string | null>(null);
+    const { employees } = useEmployees();
+
     
     const pending = requests
         .filter(r => r.status === "pending")
         .sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime());
     
     const selected = pending.find(r => r.id === selectedId) ?? pending[0];
-
-    function selectRequest(id: number) {
-        setSelectedId(id);
-        setComment("");
-        setError("");
-    }
-
-    function approve() {
-        if (!selected) return;
-        onDecide(selected.id, "approved", comment);
-        setComment("");
-        setError("");
-    }
-
-    function reject() {
-        if (!selected) return;
-        if (comment.trim() === "") {
-            setError("Please write a comment to the employee before rejecting.");
-            return;
-        }
-        onDecide(selected.id, "declined", comment);
-        setComment("");
-        setError("");
-    }
 
     if (!selected) {
         return (
@@ -67,7 +42,7 @@ export function AccountingMain({ requests, onDecide, employees, events }: Props)
                     {pending.map(request => (
                         <button
                             key={request.id}
-                            onClick={() => selectRequest(request.id)}
+                            onClick={() => setSelectedId(request.id)}
                             className={"w-full text-left bg-white rounded p-4 border-2 " +
                                 (request.id === selected.id ? "border-orange" : "border-line hover:border-orange/40")}
                         >
@@ -96,26 +71,8 @@ export function AccountingMain({ requests, onDecide, employees, events }: Props)
                             <p className="text-slate">Requested {formatDate(selected.createdAt)}</p>
                         </div>
 
-                        <label className="block mt-4 font-semibold">
-                            Comment to the employee <span className="font-normal text-slate">(required if you reject)</span>
-                            <textarea
-                                value={comment}
-                                onChange={e => setComment(e.target.value)}
-                                rows={2}
-                                className="mt-1 w-full border border-line rounded p-2 font-normal"
-                            />
-                        </label>
-
-                        {error && <p className="text-red-600 mt-1">{error}</p>}
-
-                        <div className="flex gap-3 mt-4">
-                            <button onClick={approve} className="bg-navy text-white font-semibold px-8 py-2 rounded hover:bg-navy/90">
-                                Approve
-                            </button>
-                            <button onClick={reject} className="border-2 border-red-600 text-red-600 font-semibold px-8 py-2 rounded bg-white hover:bg-red-50">
-                                Reject
-                            </button>
-                        </div>
+                        <p className="mt-4"><strong>Requested hours:</strong> {selected.hours.toFixed(2)} h</p>
+                        <p className="mt-3 text-slate">Requests can be viewed here. Approval and rejection will be available later.</p>
                     </div>
 
                     <WorkSchedule employees={employees} requests={requests} events={events} selected={selected} />

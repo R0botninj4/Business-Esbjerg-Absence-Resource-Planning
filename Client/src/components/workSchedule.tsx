@@ -69,7 +69,7 @@ export function WorkSchedule({ employees, requests, events, selected }: Props) {
         
         const holiday = requests.find(
             r =>
-                r.employeeName === employee.name &&
+                r.employeeId === String(employee.id) &&
                 (r.status === "pending" || r.status === "approved") &&
                 time >= r.start.getTime() &&
                 time <= r.end.getTime()
@@ -140,7 +140,7 @@ export function WorkSchedule({ employees, requests, events, selected }: Props) {
                 <tbody>
                 {employees.map(employee => (
                     <tr key={employee.name}>
-                        <td className={"pr-2 " + (employee.name === selected?.employeeName ? "font-bold" : "")}>
+                            <td className={"pr-2 " + (String(employee.id) === selected?.employeeId ? "font-bold" : "")}>
                             {employee.name}
                         </td>
                         {days.map(day => {

@@ -1,16 +1,15 @@
 import { Link } from "react-router";
-import { BalanceCard } from "../../components/balanceCard";
+
 import { InfoBox } from "../../components/infoBox";
 import { RequestCard } from "../../components/requestCard";
-import { testBalances } from "../../mockdata/testBalances";
-import { testMainHoliday } from "../../mockdata/testMainHoliday";
+
 import type { HolidayRequest } from "../../types/holidayRequest";
 import { formatDate } from "../../utils/format";
 import type { CalendarEvent } from "../../types/calendarEvent";
 
 type Props = {
     requests: HolidayRequest[];
-    onCancel: (id: number) => void;
+    onCancel: (id: string) => Promise<void>;
     events: CalendarEvent[];
 };
 
@@ -25,7 +24,6 @@ export function UserMain({ requests, onCancel, events }: Props) {
         .sort((a, b) => a.date.getTime() - b.date.getTime())
         .slice(0, 5);
     
-    const nextYear = today.getFullYear() + 1;
 
     return (
         <div>
@@ -39,39 +37,14 @@ export function UserMain({ requests, onCancel, events }: Props) {
                 </Link>
             </div>
 
-            {}
-            <div className="grid grid-cols-2 gap-6 mb-8">
-                <BalanceCard
-                    title="Week 1–5"
-                    hours={testBalances.weeks1to5.hours}
-                    useBy={testBalances.weeks1to5.useBy}
-                    lineColor="border-b-navy"
-                />
-                <BalanceCard
-                    title="Week 6"
-                    hours={testBalances.week6.hours}
-                    useBy={testBalances.week6.useBy}
-                    lineColor="border-b-slate"
-                />
+            <div className="mb-6 bg-white border border-line rounded p-6">
+                <h2 className="text-xl">Holiday balance</h2>
+                <p className="text-slate">Your available holiday balance is not available yet.</p>
             </div>
-
             {/* Info boxes */}
             <div className="grid grid-cols-3 gap-6 mb-8">
                 <InfoBox title="Main holiday (hovedferie)">
-                    {testMainHoliday ? (
-                        <p>
-                            <span className="text-sm font-semibold bg-navy text-white px-3 py-1 rounded-full mr-2">
-                                ✓ {testMainHoliday.start.getFullYear()} done
-                            </span>
-                            {formatDate(testMainHoliday.start)} – {formatDate(testMainHoliday.end)}
-                        </p>
-                    ) : (
-                        <p className="font-semibold">Not planned yet</p>
-                    )}
-                    <p className="text-slate mt-3">
-                        Next: 3 weeks between 1 May and 30 Sep {nextYear}.
-                        Request at least 3 months ahead – for a start on 1 May, by {formatDate(new Date(nextYear, 1, 1))}.
-                    </p>
+                    <p className="text-slate">Main holiday status will be shown when approved holiday and the applicable rules are connected.</p>
                 </InfoBox>
 
                 <InfoBox title="Coming days off – never deducted">

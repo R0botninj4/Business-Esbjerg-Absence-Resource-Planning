@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router";
 import { Layout, type NavItem } from "./components/layout";
 import { AuthProvider, HomeRedirect, RequireRole, useAuth } from "./components/auth";
@@ -12,11 +12,11 @@ import { Users } from "./pages/admin/Users";
 import { AccountingMain } from "./pages/accounting/AccountingMain";
 import { EmployeeList } from "./pages/accounting/EmployeeList";
 import { EmployeeInfo } from "./pages/accounting/EmployeeInfo";
-import { testCurrentEmployee, testRequests } from "./mockdata/testRequest";
-import type { HolidayRequest, RequestStatus } from "./types/holidayRequest";
+import { createHolidayRequest, getHolidayRequests, withdrawHolidayRequest, type NewHolidayRequest } from "./api/holidayRequests";
+import { userError } from "./api/users";
+import type { HolidayRequest } from "./types/holidayRequest";
 import { WorkSchedulePage } from "./pages/accounting/WorkSchedulePage";
 
-import { testEmployees } from "./mockdata/testEmployees";
 import { CalendarProvider, useCalendar } from "./components/calendarData";
 import { EmployeeProvider } from "./components/employeeData";
 import { MySchedule } from "./pages/user/MySchedule";
@@ -44,37 +44,46 @@ const adminLinks: NavItem[] = [
 ];
 
 export function App() {
-    return <BrowserRouter><AuthProvider><CalendarProvider><AppRoutes /></CalendarProvider></AuthProvider></BrowserRouter>;
+    return <BrowserRouter><AuthProvider><CalendarProvider><SessionRoutes /></CalendarProvider></AuthProvider></BrowserRouter>;
+}
+
+function SessionRoutes() {
+    const { user } = useAuth();
+    // A new login gets fresh state, so requests from the last account cannot stay on screen.
+    return <AppRoutes key={user?.id || "logged-out"} />;
 }
 
 function AppRoutes() {
     const { events, error: calendarError, loading: calendarLoading } = useCalendar();
     const { user } = useAuth();
-    // TODO: load from the backend instead of test data
-    // All requests from all employees. Accounting sees all of them,
-    // the employee pages only get the logged-in employee's own requests.
-    const [requests, setRequests] = useState<HolidayRequest[]>(testRequests);
-    const myRequests = requests.filter(r => r.employeeName === testCurrentEmployee);
-    const employees = testEmployees; // Approval screen remains a separate integration task.
+    const [requests, setRequests] = useState<HolidayRequest[]>([]);
+    const [requestsLoading, setRequestsLoading] = useState(false);
+    const [requestsError, setRequestsError] = useState("");
 
-    function addRequest(request: HolidayRequest) {
-        setRequests([...requests, request]);
+    useEffect(() => {
+        let cancelled = false;
+        if (!user || (user.role !== "Employee" && user.role !== "Accounting")) return;
+        setRequestsLoading(true);
+        getHolidayRequests(user.role === "Accounting")
+            .then(saved => { if (!cancelled) setRequests(saved); })
+            .catch(error => { if (!cancelled) setRequestsError(userError(error)); })
+            .finally(() => { if (!cancelled) setRequestsLoading(false); });
+        return () => { cancelled = true; };
+    }, [user?.id]);
+
+    async function addRequest(input: NewHolidayRequest) {
+        const saved = await createHolidayRequest(input);
+        setRequests(current => [saved, ...current]);
     }
 
-    function removeRequest(id: number) {
-        setRequests(requests.filter(r => r.id !== id));
+    async function cancelRequest(id: string) {
+        await withdrawHolidayRequest(id);
+        setRequests(current => current.map(request => request.id === id ? { ...request, status: "cancelled" } : request));
     }
-
-    function cancelRequest(id: number) {
-        setRequests(requests.map(r => (r.id === id ? { ...r, status: "cancelled" } : r)));
-    }
-
-    function decideRequest(id: number, status: RequestStatus, comment: string) {
-        setRequests(requests.map(r => (r.id === id ? { ...r, status: status, comment: comment } : r)));
-    }
-    
     return (
         <>
+            {requestsLoading && <p role="status" className="p-4">Loading requests...</p>}
+            {requestsError && <p role="alert" className="p-4 text-red-600">{requestsError} Reload the page to try again.</p>}
             {user && calendarError && <p role="alert" className="p-4 text-red-600">Calendar unavailable: {calendarError}</p>}
             {user && calendarLoading && <p role="status" className="p-4">Loading calendar...</p>}
                 <Routes>
@@ -82,9 +91,9 @@ function AppRoutes() {
                     <Route path="/login" element={<LoginPage />} />
 
                     <Route path="/user" element={<RequireRole role="Employee"><Layout links={userLinks} /></RequireRole>}>
-                        <Route index element={<UserMain requests={myRequests} onCancel={cancelRequest} events={events} />} />
-                        <Route path="request" element={<RequestPage requests={myRequests} onAdd={addRequest} onCancel={removeRequest} events={events} />} />
-                        <Route path="requests" element={<UserRequests requests={myRequests} onCancel={cancelRequest} />} />
+                        <Route index element={<UserMain requests={requests} onCancel={cancelRequest} events={events} />} />
+                        <Route path="request" element={<RequestPage requests={requests} onAdd={addRequest} onCancel={cancelRequest} events={events} />} />
+                        <Route path="requests" element={<UserRequests requests={requests} onCancel={cancelRequest} />} />
                         <Route path="schedule" element={<MySchedule key={user?.id} />} />
                     </Route>
 
@@ -97,7 +106,7 @@ function AppRoutes() {
                     </Route>
 
                     <Route path="/accounting" element={<RequireRole role="Accounting"><Layout links={accountingLinks} /></RequireRole>}>
-                        <Route index element={<AccountingMain requests={requests} employees={employees} onDecide={decideRequest} events={events} />} />
+                        <Route index element={<EmployeeProvider><AccountingMain requests={requests} events={events} /></EmployeeProvider>} />
                         <Route path="employees" element={<EmployeeProvider><EmployeeList /></EmployeeProvider>} />
                         <Route path="schedule" element={<EmployeeProvider><WorkSchedulePage events={events} /></EmployeeProvider>} />
                         <Route path="employees/:id" element={<EmployeeProvider><EmployeeInfo events={events} /></EmployeeProvider>} />

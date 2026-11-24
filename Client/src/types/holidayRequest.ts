@@ -3,12 +3,14 @@
 export type RequestStatus = "pending" | "approved" | "declined" | "cancelled";
 
 export type HolidayRequest = {
-    id: number;
+    id: string;
+    employeeId: string;
     employeeName: string;
     holidayType: HolidayType;
     start: Date;
     end: Date;
     createdAt: Date;
     status: RequestStatus;
+    hours: number;
     comment?: string;
 };

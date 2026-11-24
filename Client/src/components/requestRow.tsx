@@ -1,10 +1,10 @@
-﻿import type { HolidayRequest } from "../types/holidayRequest";
+import type { HolidayRequest } from "../types/holidayRequest";
 import { RequestCard } from "./requestCard";
 
 type Props = {
     title: string;
     requests: HolidayRequest[];
-    onCancel?: (id: number) => void; // optional: without it, the cards have no buttons
+    onCancel?: (id: string) => Promise<void>; // optional: without it, the cards have no buttons
 };
 
 // One row of request cards that scrolls sideways when there are many

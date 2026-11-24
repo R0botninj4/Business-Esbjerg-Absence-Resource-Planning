@@ -1,15 +1,16 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Calendar } from "../../components/calendar";
 import { RequestCard } from "../../components/requestCard";
 import type { HolidayRequest, HolidayType } from "../../types/holidayRequest";
 import { formatDate, holidayTypeName } from "../../utils/format";
-import { testCurrentEmployee } from "../../mockdata/testRequest";
+import { previewHolidayRequest, type NewHolidayRequest } from "../../api/holidayRequests";
+import { userError } from "../../api/users";
 import type { CalendarEvent } from "../../types/calendarEvent";
 
 type Props = {
     requests: HolidayRequest[];
-    onAdd: (request: HolidayRequest) => void;
-    onCancel: (id: number) => void;
+    onAdd: (request: NewHolidayRequest) => Promise<void>;
+    onCancel: (id: string) => Promise<void>;
     events: CalendarEvent[];
 };
 
@@ -28,6 +29,24 @@ export function RequestPage({ requests, onAdd, onCancel, events }: Props) {
     const [start, setStart] = useState<Date | null>(null);
     const [end, setEnd] = useState<Date | null>(null);
     const [holidayType, setHolidayType] = useState<HolidayType>("weeks1to5");
+    const [hours, setHours] = useState<number | null>(null);
+    const [calculating, setCalculating] = useState(false);
+    const [saving, setSaving] = useState(false);
+    const [error, setError] = useState("");
+    const [success, setSuccess] = useState("");
+
+    useEffect(() => {
+        let cancelled = false;
+        setHours(null);
+        setError("");
+        if (!start || !end) { setCalculating(false); return; }
+        setCalculating(true);
+        previewHolidayRequest({ account: holidayType === "weeks1to5" ? 1 : 2, startDate: toInputValue(start), endDate: toInputValue(end) })
+            .then(preview => { if (!cancelled) setHours(Number(preview.hours)); })
+            .catch(error => { if (!cancelled) setError(userError(error)); })
+            .finally(() => { if (!cancelled) setCalculating(false); });
+        return () => { cancelled = true; };
+    }, [start, end, holidayType, requests]);
     
     const pendingRequests = requests.filter(r => r.status === "pending");
     const bookedRequests = requests.filter(r => r.status === "pending" || r.status === "approved");
@@ -49,30 +68,28 @@ export function RequestPage({ requests, onAdd, onCancel, events }: Props) {
         if (date && end && end < date) setEnd(null);
     }
 
-    function handleConfirm() {
-        if (!start || !end) return;
-
-        const request: HolidayRequest = {
-            id: Date.now(), //TUDO temporary id – the database will make the real one
-            employeeName: testCurrentEmployee, // TODO: the logged-in user from the backend
-            holidayType: holidayType,
-            start: start,
-            end: end,
-            createdAt: new Date(),
-            status: "pending",
-        };
-
-        // TODO: send to the backend when the endpoint exists
-        console.log("Holiday request:", request);
-
-        onAdd(request);
-        setStart(null);
-        setEnd(null);
+    async function handleConfirm() {
+        if (!start || !end || hours === null || calculating || saving) {
+            return;
+        }
+        setSaving(true);
+        setError("");
+        setSuccess("");
+        try {
+            await onAdd({ account: holidayType === "weeks1to5" ? 1 : 2, startDate: toInputValue(start), endDate: toInputValue(end) });
+            setStart(null);
+            setEnd(null);
+            setSuccess("Your request has been saved and is waiting for approval.");
+        } catch (error) {
+            setError(userError(error));
+        } finally {
+            setSaving(false);
+        }
     }
-
     return (
         <div>
             <h1 className="text-3xl mb-6">Request holiday</h1>
+            {success && <p role="status" className="mb-4">{success}</p>}
 
             <div className="grid grid-cols-3 items-start">
                 {/* Left: choose holiday type and dates */}
@@ -138,12 +155,15 @@ export function RequestPage({ requests, onAdd, onCancel, events }: Props) {
                         <p><strong>From:</strong> {formatDate(start)}</p>
                         <p><strong>To:</strong> {formatDate(end)}</p>
 
+                        <p className="mt-3"><strong>Requested hours:</strong> {calculating ? "Calculating..." : hours === null ? "–" : hours.toFixed(2) + " h"}</p>
+                        <p className="text-sm text-slate mt-2">Submitting a request does not approve the holiday or deduct hours from your balance.</p>
+                        {error && <p role="alert" className="text-red-600 mt-3">{error}</p>}
                         <button
-                            onClick={handleConfirm}
-                            disabled={!start || !end}
+                            onClick={() => void handleConfirm()}
+                            disabled={!start || !end || hours === null || calculating || saving}
                             className="mt-6 w-full bg-orange-light text-white font-semibold px-6 py-3 rounded hover:bg-orange disabled:opacity-40 disabled:cursor-not-allowed"
                         >
-                            Confirm request
+                            {saving ? "Saving..." : "Confirm request"}
                         </button>
                     </div>
                 </div>

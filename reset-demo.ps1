@@ -39,7 +39,7 @@ if ($LASTEXITCODE -ne 0) { throw 'Could not start the local database.' }
 
 $ready = $false
 for ($attempt = 0; $attempt -lt 30; $attempt++) {
-    docker compose -f $composeFile exec -T db pg_isready -U postgres -d business_esbjerg 2>$null | Out-Null
+    docker compose -f $composeFile exec -T db pg_isready -h 127.0.0.1 -U postgres -d business_esbjerg 2>$null | Out-Null
     if ($LASTEXITCODE -eq 0) { $ready = $true; break }
     Start-Sleep -Seconds 1
 }

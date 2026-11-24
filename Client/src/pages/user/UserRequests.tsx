@@ -3,7 +3,7 @@ import type { HolidayRequest } from "../../types/holidayRequest";
 
 type Props = {
     requests: HolidayRequest[];
-    onCancel: (id: number) => void;
+    onCancel: (id: string) => Promise<void>;
 };
 
 export function UserRequests({ requests, onCancel }: Props) {
