@@ -11,7 +11,7 @@ public class HolidayBalanceResult
 
     public decimal SixthWeekHours { get; set; }
 
-    // Forbrug og saldoomregning er endnu ikke koblet på denne oversigt.
+    // Godkendt ferie er trukket fra, også når den først afholdes senere.
     public bool IncludesHolidayUsage { get; set; }
 
     public bool IncludesScheduleConversions { get; set; }
@@ -34,6 +34,10 @@ public class HolidayBalancePeriod
     public decimal PostedHours { get; set; }
 
     public decimal AdjustmentHours { get; set; }
+
+    public decimal UsedHours { get; set; }
+
+    public decimal ReservedHours { get; set; }
 
     public decimal Hours { get; set; }
 

@@ -20,6 +20,8 @@ public class HolidayBalanceService
         // 1. Læg optjeningen sammen. 2. Tilføj rettelser. 3. Beregn de to konti.
         AddPostedAccrual(userId, date, result);
         AddAdjustments(userId, date, result);
+        AddUsage(userId, date, result);
+        result.IncludesHolidayUsage = true;
         CalculateTotals(date, result);
 
         return result;
@@ -56,7 +58,7 @@ public class HolidayBalanceService
         {
             period.PostedHours = Math.Round(period.PostedHours, 2);
             period.AdjustmentHours = Math.Round(period.AdjustmentHours, 2);
-            period.Hours = period.PostedHours + period.AdjustmentHours;
+            period.Hours = period.PostedHours + period.AdjustmentHours - period.UsedHours - period.ReservedHours;
 
             // Fremtidige og udløbne perioder vises, men tæller ikke i den aktuelle sum.
             if (date < period.UsageStart)
@@ -89,6 +91,29 @@ public class HolidayBalanceService
         period.UsageStart = day.UsageStart;
         period.UsageEnd = day.UsageEnd;
         return period;
+    }
+
+    private void AddUsage(Guid userId, DateOnly date, HolidayBalanceResult result)
+    {
+        var usage = db.HolidayUsage.Where(item => item.UserId == userId).ToArray();
+        foreach (var item in usage)
+        {
+            var source = db.HolidayAccrualDays.Single(day => day.Id == item.AccrualDayId);
+            var period = FindPeriod(result, source);
+            if (period == null)
+            {
+                period = CreatePeriod(source);
+                result.Periods.Add(period);
+            }
+            if (item.Date <= date)
+            {
+                period.UsedHours += item.Hours;
+            }
+            else
+            {
+                period.ReservedHours += item.Hours;
+            }
+        }
     }
 
     private void AddAdjustments(Guid userId, DateOnly date, HolidayBalanceResult result)

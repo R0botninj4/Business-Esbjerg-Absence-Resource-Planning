@@ -246,6 +246,16 @@ export interface HolidayBalancePeriod {
    * @format double
    * @pattern ^-?(?:0|[1-9]\d*)(?:\.\d+)?$
    */
+  usedHours?: number | string;
+  /**
+   * @format double
+   * @pattern ^-?(?:0|[1-9]\d*)(?:\.\d+)?$
+   */
+  reservedHours?: number | string;
+  /**
+   * @format double
+   * @pattern ^-?(?:0|[1-9]\d*)(?:\.\d+)?$
+   */
   hours?: number | string;
 }
 
@@ -265,6 +275,11 @@ export interface HolidayBalanceResult {
   includesHolidayUsage?: boolean;
   includesScheduleConversions?: boolean;
   periods?: HolidayBalancePeriod[];
+}
+
+export interface HolidayDecisionInput {
+  approve?: boolean;
+  comment?: string;
 }
 
 export interface HolidayHoursDay {
@@ -353,6 +368,11 @@ export interface HolidayRequestResponse {
   createdAt?: string;
   /** @format date-time */
   withdrawnAt?: null | string;
+  /** @format date-time */
+  decidedAt?: null | string;
+  /** @format uuid */
+  decidedBy?: null | string;
+  comment?: string;
 }
 
 export interface HolidayRule {
@@ -1511,6 +1531,21 @@ export class Api<
      * No description
      *
      * @tags HolidayRequests
+     * @name HolidayRequestsReviewList
+     * @request GET:/api/holiday-requests/review
+     */
+    holidayRequestsReviewList: (params: RequestParams = {}) =>
+      this.request<HolidayRequestResponse[], any>({
+        path: `/api/holiday-requests/review`,
+        method: "GET",
+        format: "json",
+        ...params,
+      }),
+
+    /**
+     * No description
+     *
+     * @tags HolidayRequests
      * @name HolidayRequestsDetail
      * @request GET:/api/holiday-requests/{id}
      */
@@ -1547,6 +1582,27 @@ export class Api<
       this.request<HolidayRequestDay[], any>({
         path: `/api/holiday-requests/${id}/days`,
         method: "GET",
+        format: "json",
+        ...params,
+      }),
+
+    /**
+     * No description
+     *
+     * @tags HolidayRequests
+     * @name HolidayRequestsDecisionCreate
+     * @request POST:/api/holiday-requests/{id}/decision
+     */
+    holidayRequestsDecisionCreate: (
+      id: string,
+      data: HolidayDecisionInput,
+      params: RequestParams = {},
+    ) =>
+      this.request<HolidayRequestResponse, any>({
+        path: `/api/holiday-requests/${id}/decision`,
+        method: "POST",
+        body: data,
+        type: ContentType.Json,
         format: "json",
         ...params,
       }),
