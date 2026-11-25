@@ -28,7 +28,7 @@ public class HolidayRequestService
 
     public HolidayRequest[] GetPending()
     {
-        return db.HolidayRequests.Where(request => request.Status == "pending")
+        return db.HolidayRequests.Where(request => request.Status == "pending" || request.CancellationStatus == "pending")
             .OrderBy(request => request.CreatedAt).ToArray();
     }
 

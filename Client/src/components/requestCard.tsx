@@ -31,6 +31,8 @@ const lineColors = {
 export function RequestCard({ request, onCancel }: Props) {
     const [saving, setSaving] = useState(false);
     const [error, setError] = useState("");
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
     async function withdraw() {
         if (!onCancel || saving) {
             return;
@@ -62,6 +64,10 @@ export function RequestCard({ request, onCancel }: Props) {
 
             <p className="mt-2"><strong>Hours:</strong> {request.hours.toFixed(2)} h</p>
             {request.comment && <p className="mt-2"><strong>Comment:</strong> {request.comment}</p>}
+            {request.cancellationStatus === "pending" && <p className="mt-2">Cancellation requested. The holiday is still approved until Accounting accepts.</p>}
+            {request.cancellationStatus === "approved" && <p className="mt-2">Cancellation approved. The reserved hours have been released.</p>}
+            {request.cancellationStatus === "declined" && <p className="mt-2">Cancellation declined. The holiday remains approved.</p>}
+            {request.cancellationComment && <p className="mt-2"><strong>Cancellation comment:</strong> {request.cancellationComment}</p>}
             {error && <p role="alert" className="text-red-600 mt-2">{error}</p>}
             {onCancel && request.status === "pending" && (
                 <button
@@ -73,12 +79,12 @@ export function RequestCard({ request, onCancel }: Props) {
                 </button>
             )}
 
-            {onCancel && request.status === "approved" && (
+            {onCancel && request.status === "approved" && !request.cancellationStatus && request.start > today && (
                 <button
-                    disabled title="Cancellation of approved holiday will be available later"
+                    disabled={saving} onClick={() => void withdraw()}
                     className="mt-4 w-full border-2 border-navy text-navy font-semibold py-2 rounded bg-white hover:bg-cream"
                 >
-                    Request cancellation
+                    {saving ? "Sending..." : "Request cancellation"}
                 </button>
             )}
         </div>

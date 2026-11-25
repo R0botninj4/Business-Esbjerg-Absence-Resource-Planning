@@ -20,7 +20,7 @@ public class HolidayDebtService
     public List<HolidayUsage> Allocate(Guid userId, HolidayAccount account, List<HolidayRequestDay> requestedDays)
     {
         var history = HolidayRuleService.ReadHistory(db);
-        var existingUsage = db.HolidayUsage.Where(item => item.UserId == userId).ToArray();
+        var existingUsage = db.HolidayUsage.Where(item => item.UserId == userId && item.CancelledAt == null).ToArray();
         var employments = db.Employments.Where(item => item.UserId == userId).ToArray();
         foreach (var usage in existingUsage)
         {
@@ -144,7 +144,7 @@ public class HolidayDebtService
 
     public void ValidateExisting(Guid userId)
     {
-        if (!db.HolidayUsage.Any(item => item.UserId == userId))
+        if (!db.HolidayUsage.Any(item => item.UserId == userId && item.CancelledAt == null))
         {
             return;
         }

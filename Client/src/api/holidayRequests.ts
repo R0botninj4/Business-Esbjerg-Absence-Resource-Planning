@@ -6,6 +6,7 @@ export type NewHolidayRequest = { account: number; startDate: string; endDate: s
 type SavedRequest = {
     id: string; userId: string; email: string; account: number;
     startDate: string; endDate: string; hours: number; status: RequestStatus; createdAt: string; comment?: string;
+    cancellationStatus?: string; cancellationRequestedAt?: string; cancellationComment?: string;
 };
 
 function toRequest(saved: SavedRequest): HolidayRequest {
@@ -14,6 +15,9 @@ function toRequest(saved: SavedRequest): HolidayRequest {
         holidayType: saved.account === 1 ? "weeks1to5" : "week6",
         start: new Date(saved.startDate + "T00:00"), end: new Date(saved.endDate + "T00:00"),
         createdAt: new Date(saved.createdAt), status: saved.status, hours: Number(saved.hours), comment: saved.comment,
+        cancellationStatus: saved.cancellationStatus,
+        cancellationRequestedAt: saved.cancellationRequestedAt ? new Date(saved.cancellationRequestedAt) : undefined,
+        cancellationComment: saved.cancellationComment,
     };
 }
 
@@ -50,6 +54,21 @@ export async function decideHolidayRequest(id: string, approve: boolean, comment
         type: ContentType.Json,
         format: "json",
         body: { approve, comment },
+    });
+    return toRequest(saved);
+}
+
+export async function requestHolidayCancellation(id: string) {
+    const saved = await api.request<SavedRequest>({
+        path: `/api/holiday-requests/${id}/cancellation`, method: "POST", format: "json",
+    });
+    return toRequest(saved);
+}
+
+export async function decideHolidayCancellation(id: string, approve: boolean, comment: string) {
+    const saved = await api.request<SavedRequest>({
+        path: `/api/holiday-requests/${id}/cancellation/decision`,
+        method: "POST", type: ContentType.Json, format: "json", body: { approve, comment },
     });
     return toRequest(saved);
 }

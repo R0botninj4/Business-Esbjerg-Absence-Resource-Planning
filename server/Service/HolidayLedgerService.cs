@@ -145,7 +145,7 @@ public class HolidayLedgerService
             period.Days += ToDays(item.Hours, item.DayLength);
         }
 
-        var usage = selectedUsage ?? db.HolidayUsage.Where(item => item.UserId == userId).ToArray();
+        var usage = selectedUsage ?? db.HolidayUsage.Where(item => item.UserId == userId && item.CancelledAt == null).ToArray();
         foreach (var item in usage)
         {
             var period = ForUsage(result.Periods, item);
