@@ -51,7 +51,8 @@ public class HolidayAccrualService
 
         var result = new HolidayAccrualResult();
         result.IsPosted = true;
-        var month = new DateOnly(firstEmployment.StartDate.Year, firstEmployment.StartDate.Month, 1);
+        var start = GetAccrualStart(employments);
+        var month = new DateOnly(start.Year, start.Month, 1);
 
         while (month <= throughDate)
         {
@@ -125,7 +126,7 @@ public class HolidayAccrualService
     public void PostMissingMonths(Guid userId)
     {
         var employments = GetEmployments(userId);
-        var first = employments[0].StartDate;
+        var first = GetAccrualStart(employments);
         var month = new DateOnly(first.Year, first.Month, 1);
         var today = DateOnly.FromDateTime(DateTime.Today);
         var currentMonth = new DateOnly(today.Year, today.Month, 1);
@@ -158,8 +159,14 @@ public class HolidayAccrualService
             throw new ArgumentException("Måneden ligger uden for ansættelsen.");
         }
 
-        var firstEmploymentMonth = new DateOnly(firstEmployment.StartDate.Year, firstEmployment.StartDate.Month, 1);
-        if (first > firstEmploymentMonth && FindMonth(userId, first.AddMonths(-1)) == null)
+        var start = GetAccrualStart(employments);
+        if (last < start)
+        {
+            throw new ArgumentException("Måneden ligger før systemets første ferieregler.");
+        }
+
+        var firstAccrualMonth = new DateOnly(start.Year, start.Month, 1);
+        if (first > firstAccrualMonth && FindMonth(userId, first.AddMonths(-1)) == null)
         {
             throw new ArgumentException("Bogfør den foregående måned først.");
         }
@@ -188,11 +195,12 @@ public class HolidayAccrualService
         Employment[] employments, DateOnly month, DateOnly throughDate, HolidayAccrualResult result)
     {
         int daysInMonth = DateTime.DaysInMonth(month.Year, month.Month);
+        var start = GetAccrualStart(employments);
 
         for (int dayNumber = 1; dayNumber <= daysInMonth; dayNumber++)
         {
             var date = new DateOnly(month.Year, month.Month, dayNumber);
-            if (date > throughDate)
+            if (date < start || date > throughDate)
             {
                 continue;
             }
@@ -346,6 +354,12 @@ public class HolidayAccrualService
         int daysInMonth = DateTime.DaysInMonth(date.Year, date.Month);
         decimal days = rule.HolidayDaysPerMonth / daysInMonth;
         bool fullYear = CoversPeriod(employments, period.EarningStart, period.EarningEnd);
+        // Et delvist første ferieår må ikke fyldes op med ferie fra før systemets start.
+        if (!result.Days.Any(day => day.Account == HolidayAccount.WeeksOneToFive &&
+            day.Date == period.EarningStart))
+        {
+            fullYear = false;
+        }
 
         if (!fullYear || date != period.EarningEnd)
         {
@@ -449,6 +463,23 @@ public class HolidayAccrualService
     {
         return db.HolidayAccrualMonths.SingleOrDefault(posting =>
             posting.UserId == userId && posting.Month == month);
+    }
+
+    private DateOnly GetAccrualStart(Employment[] employments)
+    {
+        var firstRule = db.HolidayRules.OrderBy(rule => rule.EffectiveFrom).FirstOrDefault();
+        if (firstRule == null)
+        {
+            throw new ArgumentException("Systemejeren skal oprette ferieregler før optjening kan beregnes.");
+        }
+
+        var start = employments[0].StartDate;
+        if (start < firstRule.EffectiveFrom)
+        {
+            start = firstRule.EffectiveFrom;
+        }
+
+        return start;
     }
 
     private Employment[] GetEmployments(Guid userId)
