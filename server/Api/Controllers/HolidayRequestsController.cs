@@ -121,6 +121,43 @@ public class HolidayRequestsController : ControllerBase
         }
     }
 
+    [HttpPost("{id:guid}/cancellation")]
+    [Authorize(Roles = "Employee")]
+    public ActionResult<HolidayRequestResponse> RequestCancellation(Guid id, [FromServices] HolidayCancellationService cancellations)
+    {
+        try
+        {
+            var request = cancellations.Request(CurrentUserId(), id);
+            if (request == null) return NotFound();
+            return Ok(ToResponse(request));
+        }
+        catch (HolidayRequestConflictException exception)
+        {
+            return Conflict(new { message = exception.Message });
+        }
+    }
+
+    [HttpPost("{id:guid}/cancellation/decision")]
+    [Authorize(Roles = "Accounting")]
+    public ActionResult<HolidayRequestResponse> DecideCancellation(Guid id, HolidayDecisionInput input,
+        [FromServices] HolidayCancellationService cancellations)
+    {
+        try
+        {
+            var request = cancellations.Decide(id, CurrentUserId(), input);
+            if (request == null) return NotFound();
+            return Ok(ToResponse(request));
+        }
+        catch (ArgumentException exception)
+        {
+            return BadRequest(new { message = exception.Message });
+        }
+        catch (HolidayRequestConflictException exception)
+        {
+            return Conflict(new { message = exception.Message });
+        }
+    }
+
     [HttpPost]
     [Authorize(Roles = "Employee")]
     public ActionResult<HolidayRequestResponse> Create(HolidayRequestInput input)
@@ -174,6 +211,11 @@ public class HolidayRequestsController : ControllerBase
         response.DecidedAt = request.DecidedAt;
         response.DecidedBy = request.DecidedBy;
         response.Comment = request.DecisionComment;
+        response.CancellationStatus = request.CancellationStatus;
+        response.CancellationRequestedAt = request.CancellationRequestedAt;
+        response.CancellationDecidedAt = request.CancellationDecidedAt;
+        response.CancellationDecidedBy = request.CancellationDecidedBy;
+        response.CancellationComment = request.CancellationComment;
         return response;
     }
 
@@ -192,5 +234,10 @@ public class HolidayRequestsController : ControllerBase
         public DateTime? DecidedAt { get; set; }
         public Guid? DecidedBy { get; set; }
         public string Comment { get; set; } = "";
+        public string CancellationStatus { get; set; } = "";
+        public DateTime? CancellationRequestedAt { get; set; }
+        public DateTime? CancellationDecidedAt { get; set; }
+        public Guid? CancellationDecidedBy { get; set; }
+        public string CancellationComment { get; set; } = "";
     }
 }

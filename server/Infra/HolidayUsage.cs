@@ -18,4 +18,5 @@ public class HolidayUsage
     [Column("usage_end")] public DateOnly UsageEnd { get; set; }
     [Column("day_length")] public decimal DayLength { get; set; }
     [Column("days")] public decimal Days { get; set; }
+    [Column("cancelled_at"), Nullable] public DateTime? CancelledAt { get; set; }
 }

@@ -13,4 +13,7 @@ export type HolidayRequest = {
     status: RequestStatus;
     hours: number;
     comment?: string;
+    cancellationStatus?: string;
+    cancellationRequestedAt?: Date;
+    cancellationComment?: string;
 };

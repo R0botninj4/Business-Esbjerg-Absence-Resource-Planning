@@ -483,6 +483,14 @@ export interface HolidayRequestResponse {
   /** @format uuid */
   decidedBy?: null | string;
   comment?: string;
+  cancellationStatus?: string;
+  /** @format date-time */
+  cancellationRequestedAt?: null | string;
+  /** @format date-time */
+  cancellationDecidedAt?: null | string;
+  /** @format uuid */
+  cancellationDecidedBy?: null | string;
+  cancellationComment?: string;
 }
 
 export interface HolidayRule {
@@ -1810,6 +1818,45 @@ export class Api<
     ) =>
       this.request<HolidayRequestPreview, any>({
         path: `/api/holiday-requests/preview`,
+        method: "POST",
+        body: data,
+        type: ContentType.Json,
+        format: "json",
+        ...params,
+      }),
+
+    /**
+     * No description
+     *
+     * @tags HolidayRequests
+     * @name HolidayRequestsCancellationCreate
+     * @request POST:/api/holiday-requests/{id}/cancellation
+     */
+    holidayRequestsCancellationCreate: (
+      id: string,
+      params: RequestParams = {},
+    ) =>
+      this.request<HolidayRequestResponse, any>({
+        path: `/api/holiday-requests/${id}/cancellation`,
+        method: "POST",
+        format: "json",
+        ...params,
+      }),
+
+    /**
+     * No description
+     *
+     * @tags HolidayRequests
+     * @name HolidayRequestsCancellationDecisionCreate
+     * @request POST:/api/holiday-requests/{id}/cancellation/decision
+     */
+    holidayRequestsCancellationDecisionCreate: (
+      id: string,
+      data: HolidayDecisionInput,
+      params: RequestParams = {},
+    ) =>
+      this.request<HolidayRequestResponse, any>({
+        path: `/api/holiday-requests/${id}/cancellation/decision`,
         method: "POST",
         body: data,
         type: ContentType.Json,

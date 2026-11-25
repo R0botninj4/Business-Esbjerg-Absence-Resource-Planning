@@ -27,8 +27,8 @@ export function AccountingMain({ requests, events, onDecide, sicknessReports, on
     const [success, setSuccess] = useState("");
 
     const pending = requests
-        .filter(r => r.status === "pending")
-        .sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime());
+        .filter(r => r.status === "pending" || r.cancellationStatus === "pending")
+        .sort((a, b) => (a.cancellationRequestedAt ?? a.createdAt).getTime() - (b.cancellationRequestedAt ?? b.createdAt).getTime());
 
     const pendingSickness = sicknessReports
         .filter(r => r.status === "pending")
@@ -56,7 +56,9 @@ export function AccountingMain({ requests, events, onDecide, sicknessReports, on
         setSuccess("");
         try {
             await onDecide(selected.id, approve, comment);
-            if (approve) {
+            if (selected.cancellationStatus === "pending") {
+                setSuccess(approve ? "Cancellation approved. Reserved hours released." : "Cancellation declined. The holiday remains approved.");
+            } else if (approve) {
                 setSuccess("The request has been approved and the hours reserved.");
             } else {
                 setSuccess("The request has been declined.");
@@ -103,7 +105,7 @@ export function AccountingMain({ requests, events, onDecide, sicknessReports, on
                             <div className="flex justify-between items-start">
                                 <span className="font-semibold text-lg">{displayName(request.employeeName)}</span>
                                 <span className="text-xs font-semibold bg-navy/10 px-2 py-1 rounded-full">
-                                    {holidayTypeName(request.holidayType)}
+                                    {request.cancellationStatus === "pending" ? "Cancellation" : holidayTypeName(request.holidayType)}
                                 </span>
                             </div>
                             <p>{formatDate(request.start)} – {formatDate(request.end)}</p>
@@ -148,7 +150,7 @@ export function AccountingMain({ requests, events, onDecide, sicknessReports, on
                 {selected && (
                     <div className="col-span-3 space-y-6">
                         <div className="bg-white border border-line rounded p-6 border-b-4 border-b-orange">
-                            <p className="text-sm font-semibold uppercase tracking-wide text-slate">Request from</p>
+                            <p className="text-sm font-semibold uppercase tracking-wide text-slate">{selected.cancellationStatus === "pending" ? "Cancellation requested by" : "Request from"}</p>
                             <h2 className="text-3xl">{displayName(selected.employeeName)}</h2>
 
                             <div className="flex gap-10 mt-3">
@@ -160,7 +162,7 @@ export function AccountingMain({ requests, events, onDecide, sicknessReports, on
 
                             <p className="mt-4"><strong>Requested hours:</strong> {selected.hours.toFixed(2)} h</p>
                             <div className="mt-4"><PostedBalance key={selected.id} userId={selected.employeeId} /></div>
-                            <p className="mt-3 text-slate">Approval checks expected earnings, the saved holiday debt limit and the repayment deadline. Earlier approved holiday is included.</p>
+                            <p className="mt-3 text-slate">{selected.cancellationStatus === "pending" ? "Approving this cancellation removes the holiday from the calendar and releases its reserved hours. Declining keeps the holiday approved." : "Approval checks expected earnings, the saved holiday debt limit and the repayment deadline. Earlier approved holiday is included."}</p>
                             <label className="block mt-4">
                                 Comment (required when declining)
                                 <textarea value={comment} maxLength={500} disabled={saving} onChange={event => setComment(event.target.value)} className="block w-full mt-1 border border-line rounded p-2" />
