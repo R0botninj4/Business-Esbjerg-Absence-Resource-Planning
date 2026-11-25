@@ -122,6 +122,32 @@ public class HolidayAccrualService
         return result;
     }
 
+    public void PostMissingMonths(Guid userId)
+    {
+        var employments = GetEmployments(userId);
+        var first = employments[0].StartDate;
+        var month = new DateOnly(first.Year, first.Month, 1);
+        var today = DateOnly.FromDateTime(DateTime.Today);
+        var currentMonth = new DateOnly(today.Year, today.Month, 1);
+        var lastEmployment = employments[employments.Length - 1];
+
+        while (month < currentMonth)
+        {
+            if (lastEmployment.EndDate.HasValue && month > lastEmployment.EndDate.Value)
+            {
+                break;
+            }
+
+            if (FindMonth(userId, month) == null)
+            {
+                // Tomt GUID betyder, at systemet har bogført automatisk.
+                Post(userId, month.Year, month.Month, Guid.Empty);
+            }
+
+            month = month.AddMonths(1);
+        }
+    }
+
     private void ValidatePostingOrder(Guid userId, DateOnly first, DateOnly last, Employment[] employments)
     {
         var firstEmployment = employments[0];
