@@ -17,6 +17,7 @@ builder.Services.AddScoped<HolidayRequestService>();
 builder.Services.AddScoped<HolidayDecisionService>();
 builder.Services.AddScoped<HolidayCancellationService>();
 builder.Services.AddScoped<CalendarService>();
+builder.Services.AddScoped<ColleagueCalendarService>();
 builder.Services.AddScoped<HolidayRuleService>();
 builder.Services.AddScoped<HolidayAccrualService>();
 builder.Services.AddHostedService<Api.BackgroundServices.HolidayAccrualWorker>();

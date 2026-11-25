@@ -34,6 +34,69 @@ export interface ChangeWorkScheduleRequest {
   days?: WorkScheduleDayRequest[];
 }
 
+export interface ColleagueCalendarCell {
+  /** @format uuid */
+  employeeId?: string;
+  status?: string;
+  /** @format time */
+  startTime?: null | string;
+  /** @format time */
+  endTime?: null | string;
+}
+
+export interface ColleagueCalendarDay {
+  /** @format date */
+  date?: string;
+  /**
+   * @format int32
+   * @pattern ^-?(?:0|[1-9]\d*)$
+   */
+  scheduledCount?: number | string;
+  /**
+   * @format int32
+   * @pattern ^-?(?:0|[1-9]\d*)$
+   */
+  holidayCount?: number | string;
+  /**
+   * @format int32
+   * @pattern ^-?(?:0|[1-9]\d*)$
+   */
+  presentCount?: number | string;
+  /**
+   * @format int32
+   * @pattern ^-?(?:0|[1-9]\d*)$
+   */
+  missingScheduleCount?: number | string;
+  employees?: ColleagueCalendarCell[];
+}
+
+export interface ColleagueCalendarEmployee {
+  /** @format uuid */
+  id?: string;
+  name?: string;
+}
+
+export interface ColleagueCalendarHoliday {
+  /** @format uuid */
+  id?: string;
+  /** @format uuid */
+  employeeId?: string;
+  /** @format date */
+  startDate?: string;
+  /** @format date */
+  endDate?: string;
+}
+
+export interface ColleagueCalendarResult {
+  /** @format date */
+  startDate?: string;
+  /** @format date */
+  endDate?: string;
+  employees?: ColleagueCalendarEmployee[];
+  holidays?: ColleagueCalendarHoliday[];
+  days?: ColleagueCalendarDay[];
+}
+
 export interface CreateCalendarDayRequest {
   /** @format date */
   date?: string;
@@ -1311,6 +1374,30 @@ export class Api<
         method: "POST",
         body: data,
         type: ContentType.Json,
+        format: "json",
+        ...params,
+      }),
+
+    /**
+     * No description
+     *
+     * @tags ColleagueCalendar
+     * @name ColleagueCalendarList
+     * @request GET:/api/colleague-calendar
+     */
+    colleagueCalendarList: (
+      query?: {
+        /** @format date */
+        startDate?: string;
+        /** @format date */
+        endDate?: string;
+      },
+      params: RequestParams = {},
+    ) =>
+      this.request<ColleagueCalendarResult, any>({
+        path: `/api/colleague-calendar`,
+        method: "GET",
+        query: query,
         format: "json",
         ...params,
       }),
