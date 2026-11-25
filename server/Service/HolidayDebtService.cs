@@ -66,6 +66,10 @@ public class HolidayDebtService
         {
             date = existingUsage.Min(item => item.Date);
         }
+        if (adjustments.Length > 0 && adjustments.Min(item => item.Date) < date)
+        {
+            date = adjustments.Min(item => item.Date);
+        }
 
         while (date <= horizon)
         {
@@ -76,8 +80,7 @@ public class HolidayDebtService
             }
             foreach (var adjustment in adjustmentDates[date])
             {
-                var source = db.HolidayAccrualDays.Single(day => day.Id == adjustment.AccrualDayId);
-                var period = HolidayLedgerService.ForAccrual(periods, source);
+                var period = HolidayLedgerService.ForAdjustment(periods, adjustment);
                 period.Days += HolidayLedgerService.ToDays(adjustment.Hours, adjustment.DayLength);
             }
             foreach (var usage in usageDates[date])

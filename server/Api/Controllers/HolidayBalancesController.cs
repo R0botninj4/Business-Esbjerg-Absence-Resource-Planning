@@ -161,6 +161,40 @@ public class HolidayBalancesController : ControllerBase
         }
     }
 
+    [HttpPost("opening-balances")]
+    [Authorize(Roles = "Admin")]
+    public ActionResult<HolidayBalanceAdjustment> CreateOpeningBalance(Guid userId, HolidayOpeningBalanceRequest request)
+    {
+        if (users.Find(userId) == null)
+        {
+            return NotFound();
+        }
+        if (!Guid.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var createdBy))
+        {
+            return Unauthorized();
+        }
+        try
+        {
+            return Ok(adjustments.CreateOpeningBalance(userId, request, createdBy));
+        }
+        catch (ArgumentException exception)
+        {
+            return BadRequest(new { message = exception.Message });
+        }
+        catch (InvalidOperationException exception)
+        {
+            return Conflict(new { message = exception.Message });
+        }
+        catch (HolidayRequestConflictException exception)
+        {
+            return Conflict(new { message = exception.Message });
+        }
+        catch (PostgresException exception) when (exception.SqlState == PostgresErrorCodes.UniqueViolation)
+        {
+            return Conflict(new { message = "Startsaldoen eller operations-ID'et er allerede gemt." });
+        }
+    }
+
     private bool CanRead(Guid userId)
     {
         if (User.IsInRole("Admin"))

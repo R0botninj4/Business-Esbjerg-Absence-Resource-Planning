@@ -14,8 +14,14 @@ public class HolidayBalanceAdjustment
     [Column("operation_id"), NotNull]
     public Guid OperationId { get; set; }
 
-    [Column("accrual_day_id"), NotNull]
-    public Guid AccrualDayId { get; set; }
+    [Column("accrual_day_id"), Nullable]
+    public Guid? AccrualDayId { get; set; }
+
+    [Column("account")] public HolidayAccount Account { get; set; }
+    [Column("earning_start")] public DateOnly EarningStart { get; set; }
+    [Column("earning_end")] public DateOnly EarningEnd { get; set; }
+    [Column("usage_start")] public DateOnly UsageStart { get; set; }
+    [Column("usage_end")] public DateOnly UsageEnd { get; set; }
 
     [Column("date"), NotNull]
     public DateOnly Date { get; set; }
