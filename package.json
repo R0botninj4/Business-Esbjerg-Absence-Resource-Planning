@@ -1,0 +1,7 @@
+{
+  "name": "business-esbjerg",
+  "private": true,
+  "scripts": {
+    "dev": "bun scripts/start.ts"
+  }
+}
