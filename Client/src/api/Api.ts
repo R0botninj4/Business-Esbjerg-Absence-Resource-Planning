@@ -61,6 +61,11 @@ export interface ColleagueCalendarDay {
    * @format int32
    * @pattern ^-?(?:0|[1-9]\d*)$
    */
+  otherAbsenceCount?: number | string;
+  /**
+   * @format int32
+   * @pattern ^-?(?:0|[1-9]\d*)$
+   */
   presentCount?: number | string;
   /**
    * @format int32
@@ -85,6 +90,7 @@ export interface ColleagueCalendarHoliday {
   startDate?: string;
   /** @format date */
   endDate?: string;
+  dates?: string[];
 }
 
 export interface ColleagueCalendarResult {
@@ -459,6 +465,78 @@ export interface HolidayHoursResult {
   days?: HolidayHoursDay[];
 }
 
+export interface HolidayObstacle {
+  /** @format uuid */
+  id?: string;
+  /** @format uuid */
+  operationId?: string;
+  /** @format uuid */
+  userId?: string;
+  /** @format uuid */
+  requestId?: null | string;
+  kind?: string;
+  /** @format date */
+  startDate?: string;
+  /** @format date */
+  endDate?: string;
+  documentationReference?: string;
+  status?: string;
+  /** @format date-time */
+  createdAt?: string;
+  /** @format date-time */
+  decidedAt?: null | string;
+  /** @format uuid */
+  decidedBy?: null | string;
+  comment?: string;
+}
+
+export interface HolidayObstacleDay {
+  /** @format uuid */
+  id?: string;
+  /** @format uuid */
+  obstacleId?: string;
+  /** @format uuid */
+  usageId?: string;
+  /** @format date */
+  date?: string;
+  /**
+   * @format double
+   * @pattern ^-?(?:0|[1-9]\d*)(?:\.\d+)?$
+   */
+  hours?: number | string;
+  /** @format date */
+  holidayYearStart?: string;
+  /**
+   * @format int32
+   * @pattern ^-?(?:0|[1-9]\d*)$
+   */
+  waitingDays?: number | string;
+  isWaitingDay?: boolean;
+  /**
+   * @format double
+   * @pattern ^-?(?:0|[1-9]\d*)(?:\.\d+)?$
+   */
+  refundedHours?: number | string;
+}
+
+export interface HolidayObstacleInput {
+  /** @format uuid */
+  operationId?: string;
+  /** @format uuid */
+  requestId?: null | string;
+  kind?: string;
+  /** @format date */
+  startDate?: string;
+  /** @format date */
+  endDate?: string;
+  documentationReference?: string;
+}
+
+export interface HolidayObstacleResult {
+  report?: HolidayObstacle;
+  days?: HolidayObstacleDay[];
+}
+
 export interface HolidayOpeningBalanceRequest {
   /** @format uuid */
   operationId?: string;
@@ -604,6 +682,11 @@ export interface HolidayRule {
    * @pattern ^-?(?:0|[1-9]\d*)(?:\.\d+)?$
    */
   maximumTransferDays?: number | string;
+  /**
+   * @format int32
+   * @pattern ^-?(?:0|[1-9]\d*)$
+   */
+  sicknessWaitingDays?: number | string;
   periods?: null | HolidayRulePeriodSettings;
   /** @format date-time */
   createdAt?: string;
@@ -774,6 +857,11 @@ export interface HolidayRulePeriodsResult {
 }
 
 export interface HolidayRuleSettings {
+  /**
+   * @format int32
+   * @pattern ^-?(?:0|[1-9]\d*)$
+   */
+  sicknessWaitingDays?: number | string;
   /**
    * @minLength 0
    * @maxLength 100
@@ -1742,6 +1830,77 @@ export class Api<
         path: `/api/employments/${employmentId}/holiday-hours`,
         method: "GET",
         query: query,
+        format: "json",
+        ...params,
+      }),
+
+    /**
+     * No description
+     *
+     * @tags HolidayObstacles
+     * @name HolidayObstaclesList
+     * @request GET:/api/holiday-obstacles
+     */
+    holidayObstaclesList: (params: RequestParams = {}) =>
+      this.request<HolidayObstacle[], any>({
+        path: `/api/holiday-obstacles`,
+        method: "GET",
+        format: "json",
+        ...params,
+      }),
+
+    /**
+     * No description
+     *
+     * @tags HolidayObstacles
+     * @name HolidayObstaclesCreate
+     * @request POST:/api/holiday-obstacles
+     */
+    holidayObstaclesCreate: (
+      data: HolidayObstacleInput,
+      params: RequestParams = {},
+    ) =>
+      this.request<HolidayObstacle, any>({
+        path: `/api/holiday-obstacles`,
+        method: "POST",
+        body: data,
+        type: ContentType.Json,
+        format: "json",
+        ...params,
+      }),
+
+    /**
+     * No description
+     *
+     * @tags HolidayObstacles
+     * @name HolidayObstaclesDetail
+     * @request GET:/api/holiday-obstacles/{id}
+     */
+    holidayObstaclesDetail: (id: string, params: RequestParams = {}) =>
+      this.request<HolidayObstacleResult, any>({
+        path: `/api/holiday-obstacles/${id}`,
+        method: "GET",
+        format: "json",
+        ...params,
+      }),
+
+    /**
+     * No description
+     *
+     * @tags HolidayObstacles
+     * @name HolidayObstaclesDecisionCreate
+     * @request POST:/api/holiday-obstacles/{id}/decision
+     */
+    holidayObstaclesDecisionCreate: (
+      id: string,
+      data: HolidayDecisionInput,
+      params: RequestParams = {},
+    ) =>
+      this.request<HolidayObstacle, any>({
+        path: `/api/holiday-obstacles/${id}/decision`,
+        method: "POST",
+        body: data,
+        type: ContentType.Json,
         format: "json",
         ...params,
       }),

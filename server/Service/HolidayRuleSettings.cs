@@ -5,6 +5,7 @@ namespace Service;
 
 public class HolidayRuleSettings
 {
+    public int SicknessWaitingDays { get; set; } = 5;
     [Required, StringLength(100)]
     public string Name { get; set; } = "";
 

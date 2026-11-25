@@ -37,6 +37,14 @@ public class ColleagueCalendarService
         var calendarDays = db.CalendarDays.Where(item => item.Date >= startDate && item.Date <= endDate).ToArray();
         var holidays = db.HolidayRequests.Where(item => item.Status == "approved" &&
             employeeIds.Contains(item.UserId) && item.StartDate <= endDate && item.EndDate >= startDate).ToArray();
+        var holidayIds = holidays.Select(item => item.Id).ToArray();
+        var requestDays = db.HolidayRequestDays.Where(day => holidayIds.Contains(day.RequestId) && day.Basis == "approval").ToArray();
+        var requestDayIds = requestDays.Select(day => day.Id).ToArray();
+        var activeUsage = db.HolidayUsage.Where(item => requestDayIds.Contains(item.RequestDayId) &&
+            item.CancelledAt == null && item.Date >= startDate && item.Date <= endDate).ToArray();
+        // Del kun fravær med kolleger, aldrig sygdomstype eller dokumentation.
+        var obstacles = db.HolidayObstacles.Where(item => employeeIds.Contains(item.UserId) && item.Status == "approved" &&
+            item.StartDate <= endDate && item.EndDate >= startDate).ToArray();
 
         var result = new ColleagueCalendarResult();
         result.StartDate = startDate;
@@ -55,11 +63,15 @@ public class ColleagueCalendarService
         }
         foreach (var holiday in holidays)
         {
+            var dayIds = requestDays.Where(day => day.RequestId == holiday.Id).Select(day => day.Id).ToArray();
+            var dates = activeUsage.Where(item => dayIds.Contains(item.RequestDayId)).Select(item => item.Date).Distinct().OrderBy(date => date).ToList();
+            if (dates.Count == 0) continue;
             var saved = new ColleagueCalendarHoliday();
             saved.Id = holiday.Id;
             saved.EmployeeId = holiday.UserId;
             saved.StartDate = holiday.StartDate;
             saved.EndDate = holiday.EndDate;
+            saved.Dates = dates;
             result.Holidays.Add(saved);
         }
 
@@ -104,11 +116,16 @@ public class ColleagueCalendarService
                             cell.EndTime = workDay.EndTime;
                             day.ScheduledCount++;
                             cell.Status = "working";
-                            bool onHoliday = holidays.Any(item => item.UserId == employee.Id && item.StartDate <= date && item.EndDate >= date);
+                            bool onHoliday = result.Holidays.Any(item => item.EmployeeId == employee.Id && item.Dates.Contains(date));
                             if (onHoliday)
                             {
                                 cell.Status = "holiday";
                                 day.HolidayCount++;
+                            }
+                            else if (obstacles.Any(item => item.UserId == employee.Id && item.StartDate <= date && item.EndDate >= date))
+                            {
+                                cell.Status = "unavailable";
+                                day.OtherAbsenceCount++;
                             }
                             else
                             {

@@ -21,6 +21,7 @@ public class ColleagueCalendarHoliday
     public Guid EmployeeId { get; set; }
     public DateOnly StartDate { get; set; }
     public DateOnly EndDate { get; set; }
+    public List<DateOnly> Dates { get; set; } = new();
 }
 
 public class ColleagueCalendarDay
@@ -29,6 +30,7 @@ public class ColleagueCalendarDay
     public DateOnly Date { get; set; }
     public int ScheduledCount { get; set; }
     public int HolidayCount { get; set; }
+    public int OtherAbsenceCount { get; set; }
     public int PresentCount { get; set; }
     public int MissingScheduleCount { get; set; }
     public List<ColleagueCalendarCell> Employees { get; set; } = new();
@@ -37,7 +39,7 @@ public class ColleagueCalendarDay
 public class ColleagueCalendarCell
 {
     public Guid EmployeeId { get; set; }
-    // working, holiday, dayOff, notEmployed eller missingSchedule.
+    // working, holiday, unavailable, dayOff, notEmployed eller missingSchedule.
     public string Status { get; set; } = "";
     public TimeOnly? StartTime { get; set; }
     public TimeOnly? EndTime { get; set; }
