@@ -27,8 +27,9 @@ public class HolidayAccrualWorker : BackgroundService
                 logger.LogError(exception, "Automatisk ferieoptjening kunne ikke køre.");
             }
 
-            // Kør ved opstart og derefter hver time. Gemte måneder genbruges.
-            await Task.Delay(TimeSpan.FromHours(1), stoppingToken);
+            // Nye regler og ugeplaner bliver opdaget uden en genstart.
+            // Gemte måneder genbruges, så timerne ikke bliver tilføjet igen.
+            await Task.Delay(TimeSpan.FromMinutes(1), stoppingToken);
         }
     }
 
