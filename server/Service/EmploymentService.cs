@@ -1,5 +1,6 @@
 ﻿using Infra;
 using LinqToDB;
+using LinqToDB.Data;
 
 namespace Service;
 
@@ -7,11 +8,13 @@ public class EmploymentService
 {
     private readonly MyDatabaseConnection db;
     private readonly WorkScheduleService workSchedules;
+    private readonly HolidayDebtService debt;
 
-    public EmploymentService(MyDatabaseConnection database, WorkScheduleService schedules)
+    public EmploymentService(MyDatabaseConnection database, WorkScheduleService schedules, HolidayDebtService debtService)
     {
         db = database;
         workSchedules = schedules;
+        debt = debtService;
     }
 
     public Employment[] GetByUserId(Guid userId)
@@ -29,6 +32,7 @@ public class EmploymentService
     public bool End(Guid userId, Guid employmentId, DateOnly endDate)
     {
         using var transaction = db.BeginTransaction();
+        db.Query<Guid>("SELECT id FROM users WHERE id=@id FOR UPDATE", new DataParameter("id", userId)).ToArray();
         var hasLaterPlan = db.WorkSchedules.Any(schedule =>
             schedule.EmploymentId == employmentId && schedule.StartDate > endDate);
 
@@ -57,6 +61,7 @@ public class EmploymentService
             .Set(schedule => schedule.EndDate, (DateOnly?)endDate)
             .Update();
 
+        debt.ValidateExisting(userId);
         transaction.Commit();
         return updatedRows == 1;
     }
@@ -78,6 +83,7 @@ public class EmploymentService
         Guid userId, EmploymentType type, DateOnly startDate, DateOnly? endDate,
         WorkScheduleDayRequest[]? days = null)
     {
+        db.Query<Guid>("SELECT id FROM users WHERE id=@id FOR UPDATE", new DataParameter("id", userId)).ToArray();
         ValidateDates(startDate, endDate);
         if (!Enum.IsDefined(type))
         {

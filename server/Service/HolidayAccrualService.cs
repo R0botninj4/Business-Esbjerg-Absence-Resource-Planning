@@ -1,20 +1,19 @@
 using Infra;
 using LinqToDB;
+using LinqToDB.Data;
 
 namespace Service;
 
 public class HolidayAccrualService
 {
     private readonly MyDatabaseConnection db;
-    private readonly WorkScheduleService schedules;
-    private readonly HolidayRuleService rules;
+    private readonly HolidayConversionService conversions;
 
     public HolidayAccrualService(
-        MyDatabaseConnection database, WorkScheduleService workSchedules, HolidayRuleService holidayRules)
+        MyDatabaseConnection database, HolidayConversionService conversionService)
     {
         db = database;
-        schedules = workSchedules;
-        rules = holidayRules;
+        conversions = conversionService;
     }
 
     public HolidayAccrualResult GetMonth(Guid userId, int year, int month)
@@ -104,6 +103,7 @@ public class HolidayAccrualService
         }
 
         using var transaction = db.BeginTransaction();
+        db.Query<Guid>("SELECT id FROM users WHERE id=@id FOR UPDATE", new DataParameter("id", userId)).ToArray();
         var existing = FindMonth(userId, first);
         if (existing != null)
         {
@@ -115,6 +115,7 @@ public class HolidayAccrualService
 
         var result = GetMonth(userId, year, month);
         SaveMonth(userId, first, postedBy, result);
+        conversions.Record(userId);
         transaction.Commit();
 
         result.IsPosted = true;
@@ -182,14 +183,15 @@ public class HolidayAccrualService
             return;
         }
 
-        var rule = rules.GetForDate(date);
+        var rule = HolidayRuleService.FindForDate(db, date);
         if (rule == null || rule.Periods == null ||
             !rule.HolidayDaysPerYear.HasValue || !rule.SixthWeekHoursPerCalendarDay.HasValue)
         {
             throw new ArgumentException("Der mangler komplette optjeningsregler for " + date);
         }
 
-        var schedule = schedules.GetForDate(employment.Id, date);
+        var schedule = db.WorkSchedules.SingleOrDefault(plan => plan.EmploymentId == employment.Id &&
+            plan.StartDate <= date && (plan.EndDate == null || plan.EndDate >= date));
         if (schedule == null)
         {
             throw new ArgumentException("Der mangler en ugeplan for " + date);
@@ -238,7 +240,7 @@ public class HolidayAccrualService
     public decimal GetWeeklyHours(Guid scheduleId)
     {
         decimal hours = 0;
-        var days = schedules.GetDays(scheduleId);
+        var days = db.WorkScheduleDays.Where(day => day.WorkScheduleId == scheduleId).ToArray();
         if (days.Length != 5)
         {
             throw new ArgumentException("Ugeplanen skal have fem hverdage.");

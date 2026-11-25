@@ -23,6 +23,8 @@ public class HolidayBalanceAdjustment
     [Column("hours"), NotNull]
     public decimal Hours { get; set; }
 
+    [Column("day_length")] public decimal DayLength { get; set; }
+
     [Column("reason"), NotNull]
     public string Reason { get; set; } = "";
 

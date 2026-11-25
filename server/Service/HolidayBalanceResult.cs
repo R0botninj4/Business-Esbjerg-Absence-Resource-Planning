@@ -13,6 +13,9 @@ public class HolidayBalanceResult
 
     public decimal SixthWeekHours { get; set; }
 
+    public decimal WeeksOneToFiveDebtHours { get; set; }
+    public decimal SixthWeekDebtHours { get; set; }
+
     // Godkendt ferie er trukket fra, også når den først afholdes senere.
     public bool IncludesHolidayUsage { get; set; }
 
@@ -44,6 +47,14 @@ public class HolidayBalancePeriod
     public decimal ReservedHours { get; set; }
 
     public decimal Hours { get; set; }
+
+    public decimal ConversionHours { get; set; }
+    public decimal DebtHours { get; set; }
+    public decimal DayLength { get; set; }
+
+    // Dage bruges internt ved omregning. API'et viser saldoen i timer.
+    internal decimal Days { get; set; }
+    internal decimal ReservedDays { get; set; }
 
     // To poster må kun lægges sammen, hvis konto og begge perioder er ens.
     public bool Matches(HolidayAccrualDay day)

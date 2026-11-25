@@ -73,6 +73,38 @@ public class HolidayBalancesController : ControllerBase
         {
             return Conflict(new { message = exception.Message });
         }
+        catch (HolidayRequestConflictException exception)
+        {
+            return Conflict(new { message = exception.Message });
+        }
+    }
+
+    [HttpPost("reconcile")]
+    public ActionResult<HolidayBalanceResult> Reconcile(Guid userId)
+    {
+        if (!CanRead(userId))
+        {
+            return Forbid();
+        }
+        if (users.Find(userId) == null)
+        {
+            return NotFound();
+        }
+        return Ok(balances.Reconcile(userId));
+    }
+
+    [HttpGet("conversions")]
+    public ActionResult<HolidayBalanceConversion[]> GetConversions(Guid userId)
+    {
+        if (!CanRead(userId))
+        {
+            return Forbid();
+        }
+        if (users.Find(userId) == null)
+        {
+            return NotFound();
+        }
+        return Ok(balances.GetConversions(userId));
     }
 
     [HttpGet("adjustments")]
@@ -122,6 +154,10 @@ public class HolidayBalancesController : ControllerBase
         catch (PostgresException exception) when (exception.SqlState == PostgresErrorCodes.UniqueViolation)
         {
             return Conflict(new { message = "Operations-ID'et er allerede gemt. Gentag kaldet med samme indhold." });
+        }
+        catch (HolidayRequestConflictException exception)
+        {
+            return Conflict(new { message = exception.Message });
         }
     }
 

@@ -9,12 +9,15 @@ public class HolidayRequestService
     private readonly MyDatabaseConnection db;
     private readonly HolidayHoursService hours;
     private readonly HolidayRuleService rules;
+    private readonly HolidayDebtService debt;
 
-    public HolidayRequestService(MyDatabaseConnection database, HolidayHoursService hourService, HolidayRuleService ruleService)
+    public HolidayRequestService(MyDatabaseConnection database, HolidayHoursService hourService, HolidayRuleService ruleService,
+        HolidayDebtService debtService)
     {
         db = database;
         hours = hourService;
         rules = ruleService;
+        debt = debtService;
     }
 
     public HolidayRequest[] GetOwn(Guid userId)
@@ -50,7 +53,14 @@ public class HolidayRequestService
             .OrderBy(day => day.Date).ToArray();
     }
 
-    public HolidayRequestPreview Preview(Guid userId, HolidayRequestInput input, Guid? ignoredRequestId = null)
+    public HolidayRequestPreview Preview(Guid userId, HolidayRequestInput input)
+    {
+        var result = Calculate(userId, input);
+        debt.Allocate(userId, input.Account, result.Days);
+        return result;
+    }
+
+    public HolidayRequestPreview Calculate(Guid userId, HolidayRequestInput input, Guid? ignoredRequestId = null)
     {
         ValidateDates(input);
         CheckOverlap(userId, input, ignoredRequestId);

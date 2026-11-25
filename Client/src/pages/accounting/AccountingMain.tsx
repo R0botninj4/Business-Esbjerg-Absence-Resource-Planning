@@ -160,7 +160,7 @@ export function AccountingMain({ requests, events, onDecide, sicknessReports, on
 
                             <p className="mt-4"><strong>Requested hours:</strong> {selected.hours.toFixed(2)} h</p>
                             <div className="mt-4"><PostedBalance key={selected.id} userId={selected.employeeId} /></div>
-                            <p className="mt-3 text-slate">Approval currently requires enough posted hours. Holiday debt, forecast earnings and balance conversion are not connected yet.</p>
+                            <p className="mt-3 text-slate">Approval checks expected earnings, the saved holiday debt limit and the repayment deadline. Earlier approved holiday is included.</p>
                             <label className="block mt-4">
                                 Comment (required when declining)
                                 <textarea value={comment} maxLength={500} disabled={saving} onChange={event => setComment(event.target.value)} className="block w-full mt-1 border border-line rounded p-2" />

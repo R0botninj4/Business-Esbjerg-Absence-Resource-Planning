@@ -1,5 +1,6 @@
 ﻿using Infra;
 using LinqToDB;
+using LinqToDB.Data;
 using Microsoft.Extensions.Configuration;
 
 namespace Service;
@@ -8,11 +9,16 @@ public class WorkScheduleService
 {
     private readonly MyDatabaseConnection db;
     private readonly IConfiguration configuration;
+    private readonly HolidayDebtService debt;
+    private readonly HolidayConversionService conversions;
 
-    public WorkScheduleService(MyDatabaseConnection database, IConfiguration settings)
+    public WorkScheduleService(MyDatabaseConnection database, IConfiguration settings,
+        HolidayDebtService debtService, HolidayConversionService conversionService)
     {
         db = database;
         configuration = settings;
+        debt = debtService;
+        conversions = conversionService;
     }
 
     public WorkSchedule[] GetByEmploymentId(Guid employmentId)
@@ -54,6 +60,13 @@ public class WorkScheduleService
 
     public bool End(Guid employmentId, Guid workScheduleId, DateOnly endDate)
     {
+        using var transaction = db.BeginTransaction();
+        var employment = FindEmployment(employmentId);
+        if (employment == null)
+        {
+            return false;
+        }
+        LockUser(employment.UserId);
         var updatedRows = db.WorkSchedules
             .Where(schedule => schedule.EmploymentId == employmentId &&
                                schedule.Id == workScheduleId &&
@@ -62,6 +75,9 @@ public class WorkScheduleService
             .Set(schedule => schedule.EndDate, (DateOnly?)endDate)
             .Update();
 
+        debt.ValidateExisting(employment.UserId);
+        conversions.Record(employment.UserId);
+        transaction.Commit();
         return updatedRows == 1;
     }
 
@@ -117,12 +133,16 @@ public class WorkScheduleService
         // Gem planen og alle fem dage samlet.
         using var transaction = db.BeginTransaction();
 
+        LockUser(employment.UserId);
+
         if (HasOverlap(employmentId, startDate, endDate))
         {
             throw new WorkScheduleOverlapException();
         }
 
         var schedule = Save(employmentId, startDate, endDate, days);
+        debt.ValidateExisting(employment.UserId);
+        conversions.Record(employment.UserId);
         transaction.Commit();
 
         return schedule;
@@ -160,6 +180,7 @@ public class WorkScheduleService
 
         ValidatePeriod(employment, startDate, oldPlan.EndDate);
         ValidateDays(days);
+        LockUser(employment.UserId);
 
         // Den gamle version slutter dagen før den nye starter.
         var oldEndDate = startDate.AddDays(-1);
@@ -173,6 +194,8 @@ public class WorkScheduleService
         }
 
         var newPlan = Save(employmentId, startDate, oldPlan.EndDate, days);
+        debt.ValidateExisting(employment.UserId);
+        conversions.Record(employment.UserId);
         transaction.Commit();
 
         return newPlan;
@@ -183,6 +206,13 @@ public class WorkScheduleService
         // EmploymentService har allerede startet en transaktion.
         ValidateDays(days);
         Save(employment.Id, employment.StartDate, employment.EndDate, days);
+        debt.ValidateExisting(employment.UserId);
+        conversions.Record(employment.UserId);
+    }
+
+    private void LockUser(Guid userId)
+    {
+        db.Query<Guid>("SELECT id FROM users WHERE id=@id FOR UPDATE", new DataParameter("id", userId)).ToArray();
     }
 
     internal void CreateFullTime(Employment employment)
