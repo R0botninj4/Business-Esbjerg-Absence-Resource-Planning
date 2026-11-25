@@ -1,5 +1,6 @@
 using Infra;
 using LinqToDB;
+using LinqToDB.Data;
 using Microsoft.Extensions.Configuration;
 
 namespace Service;
@@ -8,11 +9,13 @@ public class HolidayRuleService
 {
     private readonly MyDatabaseConnection db;
     private readonly IConfiguration configuration;
+    private readonly HolidayDebtService debt;
 
-    public HolidayRuleService(MyDatabaseConnection database, IConfiguration settings)
+    public HolidayRuleService(MyDatabaseConnection database, IConfiguration settings, HolidayDebtService debtService)
     {
         db = database;
         configuration = settings;
+        debt = debtService;
     }
 
     public HolidayRuleSettings[] GetPresets()
@@ -30,14 +33,19 @@ public class HolidayRuleService
 
     public HolidayRule[] GetHistory()
     {
-        var rules = db.HolidayRules
+        return ReadHistory(db);
+    }
+
+    public static HolidayRule[] ReadHistory(MyDatabaseConnection database)
+    {
+        var rules = database.HolidayRules
             .OrderByDescending(rule => rule.EffectiveFrom)
             .ThenByDescending(rule => rule.Version)
             .ToArray();
 
         foreach (var rule in rules)
         {
-            rule.Periods = GetPeriodSettings(rule.Id);
+            rule.Periods = database.HolidayRulePeriods.SingleOrDefault(period => period.HolidayRuleId == rule.Id);
         }
 
         return rules;
@@ -56,7 +64,12 @@ public class HolidayRuleService
 
     public HolidayRule? GetForDate(DateOnly date)
     {
-        var rule = db.HolidayRules
+        return FindForDate(db, date);
+    }
+
+    public static HolidayRule? FindForDate(MyDatabaseConnection database, DateOnly date)
+    {
+        var rule = database.HolidayRules
             .Where(rule => rule.EffectiveFrom <= date)
             .OrderByDescending(rule => rule.EffectiveFrom)
             .ThenByDescending(rule => rule.Version)
@@ -64,7 +77,7 @@ public class HolidayRuleService
 
         if (rule != null)
         {
-            rule.Periods = GetPeriodSettings(rule.Id);
+            rule.Periods = database.HolidayRulePeriods.SingleOrDefault(period => period.HolidayRuleId == rule.Id);
         }
 
         return rule;
@@ -87,6 +100,8 @@ public class HolidayRuleService
         }
 
         using var transaction = db.BeginTransaction();
+        // Samme lås som godkendelse. Regler kan ikke ændres midt i en afgørelse.
+        HolidayLedgerService.LockRules(db);
 
         // Første opsætning kan beskrive eksisterende ansættelser.
         // Senere ændringer må ikke ændre fortidens regler.
@@ -162,6 +177,12 @@ public class HolidayRuleService
         // Gem en ny version i stedet for at overskrive den gamle.
         db.Insert(rule);
         db.Insert(periods);
+        var userIds = db.HolidayUsage.Select(item => item.UserId).Distinct().OrderBy(id => id).ToArray();
+        foreach (var userId in userIds)
+        {
+            db.Query<Guid>("SELECT id FROM users WHERE id=@id FOR UPDATE", new DataParameter("id", userId)).ToArray();
+            debt.ValidateExisting(userId);
+        }
         transaction.Commit();
         return rule;
     }

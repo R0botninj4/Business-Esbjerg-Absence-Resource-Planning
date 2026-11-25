@@ -53,12 +53,22 @@ public class EmploymentsController : ControllerBase
             return BadRequest(new { message = "Slutdatoen må ikke være før startdatoen." });
         }
 
-        if (!employmentService.End(userId, employmentId, request.EndDate))
+        try
         {
-            return Conflict(new { message = "Perioden er allerede afsluttet, eller en ugeplan starter efter slutdatoen." });
+            if (!employmentService.End(userId, employmentId, request.EndDate))
+            {
+                return Conflict(new { message = "Perioden er allerede afsluttet, eller en ugeplan starter efter slutdatoen." });
+            }
+            return NoContent();
         }
-
-        return NoContent();
+        catch (ArgumentException exception)
+        {
+            return BadRequest(new { message = exception.Message });
+        }
+        catch (HolidayRequestConflictException exception)
+        {
+            return Conflict(new { message = exception.Message });
+        }
     }
 
     public class EndEmploymentRequest

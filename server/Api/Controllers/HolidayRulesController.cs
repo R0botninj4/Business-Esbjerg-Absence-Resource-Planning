@@ -118,6 +118,10 @@ public class HolidayRulesController : ControllerBase
         {
             return Conflict(new { message = "Reglerne blev ændret samtidig. Prøv igen." });
         }
+        catch (HolidayRequestConflictException exception)
+        {
+            return Conflict(new { message = exception.Message });
+        }
     }
 
     public class CreateHolidayRuleRequest

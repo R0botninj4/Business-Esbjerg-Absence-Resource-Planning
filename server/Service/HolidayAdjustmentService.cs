@@ -8,11 +8,18 @@ public class HolidayAdjustmentService
 {
     private readonly MyDatabaseConnection db;
     private readonly HolidayBalanceService balances;
+    private readonly HolidayLedgerService ledger;
+    private readonly HolidayDebtService debt;
+    private readonly HolidayConversionService conversions;
 
-    public HolidayAdjustmentService(MyDatabaseConnection database, HolidayBalanceService balanceService)
+    public HolidayAdjustmentService(MyDatabaseConnection database, HolidayBalanceService balanceService,
+        HolidayLedgerService ledgerService, HolidayDebtService debtService, HolidayConversionService conversionService)
     {
         db = database;
         balances = balanceService;
+        ledger = ledgerService;
+        debt = debtService;
+        conversions = conversionService;
     }
 
     public HolidayBalanceAdjustment[] GetHistory(Guid userId)
@@ -54,9 +61,16 @@ public class HolidayAdjustmentService
         }
 
         var adjustment = CreateAdjustmentRecord(userId, request, createdBy);
+        adjustment.DayLength = ledger.DayLengthOn(userId, request.Date);
+        if (adjustment.DayLength <= 0)
+        {
+            throw new ArgumentException("Saldorettelsen kræver en positiv daglængde.");
+        }
 
         // Insert tilføjer en ny række. De gamle poster bliver ikke ændret.
         db.Insert(adjustment);
+        debt.ValidateExisting(userId);
+        conversions.Record(userId);
         transaction.Commit();
         return adjustment;
     }

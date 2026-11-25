@@ -128,6 +128,10 @@ public class WorkSchedulesController : ControllerBase
         {
             return Conflict(new { message = exception.Message });
         }
+        catch (HolidayRequestConflictException exception)
+        {
+            return Conflict(new { message = exception.Message });
+        }
     }
 
     [HttpPatch("{workScheduleId:guid}/end")]
@@ -151,12 +155,22 @@ public class WorkSchedulesController : ControllerBase
             return BadRequest(new { message = "Slutdatoen må ikke være før startdatoen." });
         }
 
-        if (!workSchedules.End(employmentId, workScheduleId, request.EndDate))
+        try
         {
-            return Conflict(new { message = "Ugeplanen er allerede afsluttet." });
+            if (!workSchedules.End(employmentId, workScheduleId, request.EndDate))
+            {
+                return Conflict(new { message = "Ugeplanen er allerede afsluttet." });
+            }
+            return NoContent();
         }
-
-        return NoContent();
+        catch (ArgumentException exception)
+        {
+            return BadRequest(new { message = exception.Message });
+        }
+        catch (HolidayRequestConflictException exception)
+        {
+            return Conflict(new { message = exception.Message });
+        }
     }
 
     [HttpPut("{workScheduleId:guid}")]
@@ -185,6 +199,10 @@ public class WorkSchedulesController : ControllerBase
             return BadRequest(new { message = exception.Message });
         }
         catch (WorkScheduleOverlapException exception)
+        {
+            return Conflict(new { message = exception.Message });
+        }
+        catch (HolidayRequestConflictException exception)
         {
             return Conflict(new { message = exception.Message });
         }

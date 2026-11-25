@@ -14,14 +14,16 @@ public class HolidayDecisionService
 {
     private readonly MyDatabaseConnection db;
     private readonly HolidayRequestService requests;
-    private readonly HolidayBalanceService balances;
+    private readonly HolidayDebtService debt;
+    private readonly HolidayConversionService conversions;
 
     public HolidayDecisionService(MyDatabaseConnection database, HolidayRequestService requestService,
-        HolidayBalanceService balanceService)
+        HolidayDebtService debtService, HolidayConversionService conversionService)
     {
         db = database;
         requests = requestService;
-        balances = balanceService;
+        debt = debtService;
+        conversions = conversionService;
     }
 
     public HolidayRequest? Decide(Guid requestId, Guid decidedBy, HolidayDecisionInput input)
@@ -37,6 +39,10 @@ public class HolidayDecisionService
         }
 
         using var transaction = db.BeginTransaction();
+        if (input.Approve)
+        {
+            HolidayLedgerService.LockRules(db);
+        }
         var request = db.HolidayRequests.SingleOrDefault(item => item.Id == requestId);
         if (request == null)
         {
@@ -79,6 +85,7 @@ public class HolidayDecisionService
         request.DecidedBy = decidedBy;
         request.DecisionComment = comment;
         db.Update(request);
+        conversions.Record(request.UserId);
         transaction.Commit();
         return request;
     }
@@ -89,92 +96,24 @@ public class HolidayDecisionService
         input.Account = request.Account;
         input.StartDate = request.StartDate;
         input.EndDate = request.EndDate;
-        // Genberegn med de planer og regler, som gælder ved afgørelsen.
-        // Grundlaget fra indsendelsen bliver ikke ændret.
-        var preview = requests.Preview(request.UserId, input, request.Id);
+        var preview = requests.Calculate(request.UserId, input, request.Id);
         if (preview.Hours != request.Hours)
         {
-            throw new HolidayRequestConflictException("Timeforbruget har ændret sig siden indsendelsen. Medarbejderen skal indsende en ny ansøgning med det aktuelle timetal.");
+            throw new HolidayRequestConflictException("Timeforbruget har ændret sig. Medarbejderen skal indsende en ny ansøgning med det aktuelle timetal.");
         }
-        var balance = balances.Get(request.UserId, DateOnly.FromDateTime(DateTime.Today));
-        var periods = balance.Periods.OrderBy(period => period.UsageEnd).ToArray();
-
         foreach (var day in preview.Days)
         {
             day.Id = Guid.NewGuid();
             day.RequestId = request.Id;
             day.Basis = "approval";
             db.Insert(day);
-            ReserveDay(request, day, periods);
+        }
+        // Hele forløbet valideres, før noget forbrug gemmes.
+        var usage = debt.Allocate(request.UserId, request.Account, preview.Days);
+        foreach (var item in usage)
+        {
+            db.Insert(item);
         }
         request.Hours = preview.Hours;
-    }
-
-    private void ReserveDay(HolidayRequest request, HolidayRequestDay day, HolidayBalancePeriod[] periods)
-    {
-        decimal remaining = day.Hours;
-        foreach (var period in periods)
-        {
-            if (remaining == 0)
-            {
-                break;
-            }
-            if (period.Account != request.Account || day.Date < period.UsageStart || day.Date > period.UsageEnd || period.Hours <= 0)
-            {
-                continue;
-            }
-            var source = FindSource(request.UserId, period, day.WorkScheduleId);
-            var usage = new HolidayUsage();
-            usage.Id = Guid.NewGuid();
-            usage.RequestDayId = day.Id;
-            usage.UserId = request.UserId;
-            usage.AccrualDayId = source.Id;
-            usage.Date = day.Date;
-            usage.Hours = Math.Min(remaining, period.Hours);
-            db.Insert(usage);
-            remaining -= usage.Hours;
-            period.Hours -= usage.Hours;
-        }
-        if (remaining > 0)
-        {
-            throw new HolidayRequestConflictException("Der er ikke nok bogførte timer til perioden. Godkendelse med feriegæld eller forventet optjening er endnu ikke tilsluttet.");
-        }
-    }
-
-    private HolidayAccrualDay FindSource(Guid userId, HolidayBalancePeriod period, Guid? targetScheduleId)
-    {
-        var monthIds = db.HolidayAccrualMonths.Where(month => month.UserId == userId).Select(month => month.Id).ToArray();
-        var sources = db.HolidayAccrualDays.Where(day => monthIds.Contains(day.AccrualMonthId) &&
-            day.Account == period.Account && day.EarningStart == period.EarningStart && day.EarningEnd == period.EarningEnd &&
-            day.UsageStart == period.UsageStart && day.UsageEnd == period.UsageEnd).ToArray();
-        decimal targetHours = WeeklyHours(targetScheduleId);
-        foreach (var source in sources)
-        {
-            if (WeeklyHours(source.WorkScheduleId) != targetHours)
-            {
-                throw new HolidayRequestConflictException("Arbejdstiden har ændret sig. Saldoomregning skal tilsluttes, før ferien kan godkendes korrekt.");
-            }
-        }
-        return sources[0];
-    }
-
-    private decimal WeeklyHours(Guid? scheduleId)
-    {
-        if (scheduleId == null)
-        {
-            throw new HolidayRequestConflictException("Der mangler en arbejdsplan til beregningen.");
-        }
-        var days = db.WorkScheduleDays.Where(day => day.WorkScheduleId == scheduleId && !day.IsDayOff).ToArray();
-        decimal total = 0;
-        foreach (var day in days)
-        {
-            if (day.StartTime == null || day.EndTime == null)
-            {
-                throw new HolidayRequestConflictException("Arbejdsplanen mangler et klokkeslæt.");
-            }
-            var duration = day.EndTime.Value - day.StartTime.Value;
-            total += (decimal)duration.TotalHours;
-        }
-        return total;
     }
 }

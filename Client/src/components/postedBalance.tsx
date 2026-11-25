@@ -7,29 +7,43 @@ type Balance = {
     sixthWeekHours: number;
 };
 
+type Conversion = {
+    id: string;
+    date: string;
+    account: number;
+    beforeHours: number;
+    afterHours: number;
+    hours: number;
+};
+
 export function PostedBalance({ userId }: { userId: string }) {
     const [balance, setBalance] = useState<Balance | null>(null);
     const [error, setError] = useState("");
+    const [conversions, setConversions] = useState<Conversion[]>([]);
 
     useEffect(() => {
         let cancelled = false;
         setBalance(null);
         setError("");
-        const today = new Date();
-        const month = String(today.getMonth() + 1).padStart(2, "0");
-        const day = String(today.getDate()).padStart(2, "0");
-        const date = today.getFullYear() + "-" + month + "-" + day;
+        setConversions([]);
 
         async function load() {
             try {
                 const saved = await api.request<Balance>({
-                    path: `/api/users/${userId}/holiday-balances`,
-                    query: { date },
-                    method: "GET",
+                    path: `/api/users/${userId}/holiday-balances/reconcile`,
+                    method: "POST",
                     format: "json",
                 });
                 if (!cancelled) {
                     setBalance(saved);
+                }
+                const history = await api.request<Conversion[]>({
+                    path: `/api/users/${userId}/holiday-balances/conversions`,
+                    method: "GET",
+                    format: "json",
+                });
+                if (!cancelled) {
+                    setConversions(history);
                 }
             } catch (error) {
                 if (!cancelled) {
@@ -49,6 +63,13 @@ export function PostedBalance({ userId }: { userId: string }) {
             <p>Week 1–5: <strong>{Number(balance.weeksOneToFiveHours).toFixed(2)} h</strong></p>
             <p>Week 6: <strong>{Number(balance.sixthWeekHours).toFixed(2)} h</strong></p>
         </div>}
-        <p className="text-sm text-slate mt-2">Posted earnings and adjustments, minus approved holiday. Pending requests are not reserved. Forecast earnings, holiday debt and conversion after changes in working hours are not included.</p>
+        <p className="text-sm text-slate mt-2">Posted earnings and adjustments, minus approved holiday, converted to the current working hours. This can be negative when future holiday is reserved against expected earnings. Use the forecast below to see expected earnings and actual holiday debt on a date. Pending requests are not reserved.</p>
+        {conversions.length > 0 && <details className="mt-3">
+            <summary className="cursor-pointer font-semibold">Working-time conversion history</summary>
+            <p className="text-sm text-slate">Later postings can add a correction. Earlier entries are kept.</p>
+            {conversions.map(item => <p key={item.id} className="py-2 border-b border-line">
+                {item.date} · {item.account === 1 ? "Week 1–5" : "Week 6"} · {Number(item.beforeHours).toFixed(2)} h → {Number(item.afterHours).toFixed(2)} h · Recorded change: {Number(item.hours).toFixed(2)} h
+            </p>)}
+        </details>}
     </div>;
 }

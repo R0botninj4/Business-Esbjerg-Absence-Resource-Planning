@@ -215,11 +215,61 @@ export interface HolidayBalanceAdjustment {
    * @pattern ^-?(?:0|[1-9]\d*)(?:\.\d+)?$
    */
   hours?: number | string;
+  /**
+   * @format double
+   * @pattern ^-?(?:0|[1-9]\d*)(?:\.\d+)?$
+   */
+  dayLength?: number | string;
   reason?: string;
   /** @format date-time */
   createdAt?: string;
   /** @format uuid */
   createdBy?: string;
+}
+
+export interface HolidayBalanceConversion {
+  /** @format uuid */
+  id?: string;
+  /** @format uuid */
+  userId?: string;
+  /** @format uuid */
+  workScheduleId?: string;
+  /** @format uuid */
+  previousScheduleId?: string;
+  account?: HolidayAccount;
+  /** @format date */
+  earningStart?: string;
+  /** @format date */
+  earningEnd?: string;
+  /** @format date */
+  usageStart?: string;
+  /** @format date */
+  usageEnd?: string;
+  /** @format date */
+  date?: string;
+  /**
+   * @format double
+   * @pattern ^-?(?:0|[1-9]\d*)(?:\.\d+)?$
+   */
+  remainingDays?: number | string;
+  /**
+   * @format double
+   * @pattern ^-?(?:0|[1-9]\d*)(?:\.\d+)?$
+   */
+  beforeHours?: number | string;
+  /**
+   * @format double
+   * @pattern ^-?(?:0|[1-9]\d*)(?:\.\d+)?$
+   */
+  afterHours?: number | string;
+  /**
+   * @format double
+   * @pattern ^-?(?:0|[1-9]\d*)(?:\.\d+)?$
+   */
+  hours?: number | string;
+  basisKey?: string;
+  /** @format date-time */
+  createdAt?: string;
 }
 
 export interface HolidayBalancePeriod {
@@ -241,6 +291,11 @@ export interface HolidayBalancePeriod {
    * @format double
    * @pattern ^-?(?:0|[1-9]\d*)(?:\.\d+)?$
    */
+  expectedHours?: number | string;
+  /**
+   * @format double
+   * @pattern ^-?(?:0|[1-9]\d*)(?:\.\d+)?$
+   */
   adjustmentHours?: number | string;
   /**
    * @format double
@@ -257,11 +312,27 @@ export interface HolidayBalancePeriod {
    * @pattern ^-?(?:0|[1-9]\d*)(?:\.\d+)?$
    */
   hours?: number | string;
+  /**
+   * @format double
+   * @pattern ^-?(?:0|[1-9]\d*)(?:\.\d+)?$
+   */
+  conversionHours?: number | string;
+  /**
+   * @format double
+   * @pattern ^-?(?:0|[1-9]\d*)(?:\.\d+)?$
+   */
+  debtHours?: number | string;
+  /**
+   * @format double
+   * @pattern ^-?(?:0|[1-9]\d*)(?:\.\d+)?$
+   */
+  dayLength?: number | string;
 }
 
 export interface HolidayBalanceResult {
   /** @format date */
   date?: string;
+  includesExpectedAccrual?: boolean;
   /**
    * @format double
    * @pattern ^-?(?:0|[1-9]\d*)(?:\.\d+)?$
@@ -272,6 +343,16 @@ export interface HolidayBalanceResult {
    * @pattern ^-?(?:0|[1-9]\d*)(?:\.\d+)?$
    */
   sixthWeekHours?: number | string;
+  /**
+   * @format double
+   * @pattern ^-?(?:0|[1-9]\d*)(?:\.\d+)?$
+   */
+  weeksOneToFiveDebtHours?: number | string;
+  /**
+   * @format double
+   * @pattern ^-?(?:0|[1-9]\d*)(?:\.\d+)?$
+   */
+  sixthWeekDebtHours?: number | string;
   includesHolidayUsage?: boolean;
   includesScheduleConversions?: boolean;
   periods?: HolidayBalancePeriod[];
@@ -1409,6 +1490,65 @@ export class Api<
         path: `/api/users/${userId}/holiday-balances`,
         method: "GET",
         query: query,
+        format: "json",
+        ...params,
+      }),
+
+    /**
+     * No description
+     *
+     * @tags HolidayBalances
+     * @name UsersHolidayBalancesForecastList
+     * @request GET:/api/users/{userId}/holiday-balances/forecast
+     */
+    usersHolidayBalancesForecastList: (
+      userId: string,
+      query?: {
+        /** @format date */
+        date?: string;
+      },
+      params: RequestParams = {},
+    ) =>
+      this.request<HolidayBalanceResult, any>({
+        path: `/api/users/${userId}/holiday-balances/forecast`,
+        method: "GET",
+        query: query,
+        format: "json",
+        ...params,
+      }),
+
+    /**
+     * No description
+     *
+     * @tags HolidayBalances
+     * @name UsersHolidayBalancesReconcileCreate
+     * @request POST:/api/users/{userId}/holiday-balances/reconcile
+     */
+    usersHolidayBalancesReconcileCreate: (
+      userId: string,
+      params: RequestParams = {},
+    ) =>
+      this.request<HolidayBalanceResult, any>({
+        path: `/api/users/${userId}/holiday-balances/reconcile`,
+        method: "POST",
+        format: "json",
+        ...params,
+      }),
+
+    /**
+     * No description
+     *
+     * @tags HolidayBalances
+     * @name UsersHolidayBalancesConversionsList
+     * @request GET:/api/users/{userId}/holiday-balances/conversions
+     */
+    usersHolidayBalancesConversionsList: (
+      userId: string,
+      params: RequestParams = {},
+    ) =>
+      this.request<HolidayBalanceConversion[], any>({
+        path: `/api/users/${userId}/holiday-balances/conversions`,
+        method: "GET",
         format: "json",
         ...params,
       }),

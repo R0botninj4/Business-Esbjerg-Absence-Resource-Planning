@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link, useParams } from "react-router";
 import { Calendar } from "../../components/calendar";
 import { ScheduleForm } from "../../components/scheduleForm";
+import { FutureBalance } from "../../components/futureBalance";
 import { useEmployees } from "../../components/employeeData";
 import { getEmployments, userError } from "../../api/users";
 import { saveSchedule } from "../../api/schedules";
@@ -65,6 +66,8 @@ export function EmployeeInfo({ events }: { events: CalendarEvent[] }) {
             </div>)}
         </div>
         <Calendar start={null} end={null} onSelect={() => {}} events={events} dayText={workingHours} />
-        <p className="text-slate mt-4">Holiday requests and balances will be connected separately.</p>
+        <div className="mt-6 bg-white border border-line rounded p-6">
+            <FutureBalance key={employee.id} userId={String(employee.id)} />
+        </div>
     </div>;
 }
