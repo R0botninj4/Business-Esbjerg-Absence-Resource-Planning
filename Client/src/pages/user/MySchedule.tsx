@@ -21,31 +21,44 @@ export function MySchedule({ events, requests }: Props) {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
 
-    // TODO (#94): also load the colleagues and their approved holiday, when the backend allows it
+    // Hent kun den private historik her. WorkSchedule henter den fælles uge fra kalender-API'et.
     useEffect(() => {
-        if (!user) return;
-        loadEmployee({ id: user.id, email: user.email, role: "Employee", isActive: true })
-            .then(setEmployee)
-            .catch(error => setError(userError(error)))
-            .finally(() => setLoading(false));
+        const currentUser = user;
+        if (!currentUser) return;
+        const userId = currentUser.id;
+        const email = currentUser.email;
+        let cancelled = false;
+        async function loadHistory() {
+            setLoading(true);
+            setError("");
+            try {
+                const saved = await loadEmployee({ id: userId, email, role: "Employee", isActive: true });
+                if (!cancelled) setEmployee(saved);
+            } catch (error) {
+                if (!cancelled) setError(userError(error));
+            } finally {
+                if (!cancelled) setLoading(false);
+            }
+        }
+        void loadHistory();
+        return () => { cancelled = true; };
     }, [user?.id]);
 
     if (loading) return <p>Loading your schedule...</p>;
     if (error) return <p role="alert" className="text-red-600">{error}</p>;
-    if (!user || !employee || employee.schedules.length === 0) {
-        return <p>No work schedule has been saved for your account.</p>;
-    }
+    if (!user) return null;
 
     const today = new Date();
-    const history = [...employee.schedules].reverse(); // newest first
+    const history = [...(employee?.schedules ?? [])].reverse(); // newest first
 
     return (
         <div>
             <p className="mb-4 text-slate">Who is at work and who is on holiday. Your own row is highlighted.</p>
 
-            <WorkSchedule employees={[employee]} requests={requests} events={events} viewerId={user.id} />
+            <WorkSchedule employees={[]} requests={requests} events={events} viewerId={user.id} />
 
             <h2 className="text-2xl mt-8 mb-4">My schedule history</h2>
+            {history.length === 0 && <p>No work schedule has been saved for your account.</p>}
             <div className="grid grid-cols-3 gap-4">
                 {history.map(period => {
                     const isCurrent = period.validFrom <= today && (!period.validTo || today <= period.validTo);

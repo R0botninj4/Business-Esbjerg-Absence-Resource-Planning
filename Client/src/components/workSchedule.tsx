@@ -1,10 +1,14 @@
-﻿import { useEffect, useState, type SubmitEvent } from "react";
+import { useEffect, useState, type SubmitEvent } from "react";
 import type { CalendarEvent } from "../types/calendarEvent";
 import type { Employee } from "../types/employee";
 import type { HolidayRequest } from "../types/holidayRequest";
 import { mondayOfWeek, startOfWeek, weekdayIndex, weekNumber, weekYear } from "../utils/dates";
 import { formatDate, displayName } from "../utils/format";
 import { scheduleOn } from "../utils/schedule";
+import { api } from "../api/client";
+import type { ColleagueCalendarResult } from "../api/Api";
+import { dateText } from "../api/schedules";
+import { userError } from "../api/users";
 
 type Props = {
     employees: Employee[];
@@ -19,11 +23,44 @@ type Cell = {
     color: string;
     working: boolean;
 };
+type ScheduleEmployee = {
+    id: string | number;
+    name: string;
+};
 
 export function WorkSchedule({ employees, requests, events, selected, viewerId }: Props) {
     const [monday, setMonday] = useState(startOfWeek(selected ? selected.start : new Date()));
     const [weekInput, setWeekInput] = useState("");
     const [yearInput, setYearInput] = useState("");
+    const [calendar, setCalendar] = useState<ColleagueCalendarResult | null>(null);
+    const [calendarLoading, setCalendarLoading] = useState(false);
+    const [calendarError, setCalendarError] = useState("");
+
+    useEffect(() => {
+        // Medarbejdervisningen bruger det fælles API. Regnskabets visning har sine egne data.
+        if (!viewerId) return;
+        let cancelled = false;
+        async function loadCalendar() {
+            setCalendarLoading(true);
+            setCalendarError("");
+            setCalendar(null);
+            const end = new Date(monday.getFullYear(), monday.getMonth(), monday.getDate() + 6);
+            try {
+                const saved = await api.request<ColleagueCalendarResult>({
+                    path: "/api/colleague-calendar",
+                    method: "GET", format: "json",
+                    query: { startDate: dateText(monday), endDate: dateText(end) },
+                });
+                if (!cancelled) setCalendar(saved);
+            } catch (error) {
+                if (!cancelled) setCalendarError(userError(error));
+            } finally {
+                if (!cancelled) setCalendarLoading(false);
+            }
+        }
+        void loadCalendar();
+        return () => { cancelled = true; };
+    }, [monday, viewerId]);
 
     useEffect(() => {
         if (selected) setMonday(startOfWeek(selected.start));
@@ -60,7 +97,25 @@ export function WorkSchedule({ employees, requests, events, selected, viewerId }
         setMonday(newMonday);
     }
 
-    function getCell(employee: Employee, day: Date): Cell {
+    function getSharedCell(employee: ScheduleEmployee, day: Date): Cell {
+        const savedDay = calendar?.days?.find(item => item.date === dateText(day));
+        const savedCell = savedDay?.employees?.find(item => item.employeeId === String(employee.id));
+        if (!savedCell) return { text: "–", color: "bg-line text-slate", working: false };
+        if (savedCell.status === "holiday") return { text: "Holiday", color: "bg-navy text-white font-semibold", working: false };
+        if (savedCell.status === "unavailable") return { text: "Unavailable", color: "bg-line text-slate", working: false };
+        if (savedCell.status === "missingSchedule") return { text: "Missing schedule", color: "bg-gold text-white", working: false };
+        if (savedCell.status !== "working") return { text: "Not working", color: "bg-line text-slate", working: false };
+        if (String(employee.id) !== viewerId) return { text: "At work", color: "bg-white", working: true };
+        const pending = requests.some(request => request.status === "pending" &&
+            request.employeeId === viewerId && day >= request.start && day <= request.end);
+        if (pending) return { text: "Pending", color: "bg-gold text-white font-semibold", working: true };
+        const from = savedCell.startTime?.slice(0, 5) ?? "";
+        const to = savedCell.endTime?.slice(0, 5) ?? "";
+        return { text: from + "–" + to, color: "bg-white", working: true };
+    }
+
+    function getCell(employee: ScheduleEmployee, day: Date): Cell {
+        if (viewerId) return getSharedCell(employee, day);
         const time = day.getTime();
 
         const dayOff = events.find(e => e.type !== "info" && e.date.getTime() === time);
@@ -68,13 +123,10 @@ export function WorkSchedule({ employees, requests, events, selected, viewerId }
 
         if (day.getDay() === 0 || day.getDay() === 6) return { text: "", color: "bg-line", working: false };
 
-        // On the employee's page, colleagues only show approved holiday and "At work" (no pending holiday, no times)
-        const isColleague = viewerId !== undefined && String(employee.id) !== viewerId;
-
         const holiday = requests.find(
             r =>
                 r.employeeId === String(employee.id) &&
-                (r.status === "approved" || (r.status === "pending" && !isColleague)) &&
+                (r.status === "approved" || r.status === "pending") &&
                 time >= r.start.getTime() &&
                 time <= r.end.getTime()
         );
@@ -82,20 +134,35 @@ export function WorkSchedule({ employees, requests, events, selected, viewerId }
         if (holiday && holiday.status === "pending") return { text: "Pending", color: "bg-gold text-white font-semibold", working: false };
         if (holiday) return { text: "Holiday", color: "bg-navy text-white font-semibold", working: false };
 
-        const workDay = scheduleOn(employee, day)[weekdayIndex(day)];
+        const fullEmployee = employees.find(item => item.id === employee.id);
+        if (!fullEmployee) return { text: "Not working", color: "bg-line text-slate", working: false };
+        const workDay = scheduleOn(fullEmployee, day)[weekdayIndex(day)];
         if (!workDay) return { text: "Not working", color: "bg-line text-slate", working: false };
 
-        if (isColleague) return { text: "At work", color: "bg-white", working: true };
         return { text: workDay.from + "–" + workDay.to, color: "bg-white", working: true };
     }
 
     // The logged-in employee is shown first, so they don't have to look for themselves
-    const me = employees.filter(e => String(e.id) === viewerId);
-    const others = employees.filter(e => String(e.id) !== viewerId);
+    let visibleEmployees: ScheduleEmployee[] = employees;
+    if (viewerId) {
+        visibleEmployees = [];
+        for (const colleague of calendar?.employees ?? []) {
+            if (colleague.id && colleague.name) visibleEmployees.push({ id: colleague.id, name: colleague.name });
+        }
+    }
+    const me = visibleEmployees.filter(e => String(e.id) === viewerId);
+    const others = visibleEmployees.filter(e => String(e.id) !== viewerId);
     const rows = [...me, ...others];
 
-    function presentCount(day: Date) {
-        return employees.filter(employee => getCell(employee, day).working).length;
+    function presentLabel(day: Date) {
+        if (viewerId) {
+            const savedDay = calendar?.days?.find(item => item.date === dateText(day));
+            if (!savedDay || Number(savedDay.scheduledCount) === 0) return "–";
+            return savedDay.presentCount + " / " + savedDay.scheduledCount;
+        }
+        const count = employees.filter(employee => getCell(employee, day).working).length;
+        if (count === 0) return "–";
+        return count + " / " + employees.length;
     }
 
     return (
@@ -135,6 +202,9 @@ export function WorkSchedule({ employees, requests, events, selected, viewerId }
                 </form>
             </div>
 
+            {calendarLoading && <p role="status">Loading colleagues and approved holiday...</p>}
+            {calendarError && <p role="alert" className="text-red-600">{calendarError}</p>}
+            {!calendarLoading && !calendarError && viewerId && rows.length === 0 && <p>No employees scheduled in this period.</p>}
             <table className="w-full table-fixed text-sm">
                 <thead>
                 <tr>
@@ -173,10 +243,9 @@ export function WorkSchedule({ employees, requests, events, selected, viewerId }
                 <tr>
                     <td className="pt-2 font-semibold">Present</td>
                     {days.map(day => {
-                        const count = presentCount(day);
                         return (
                             <td key={day.getTime()} className="pt-2 text-center font-semibold">
-                                {count === 0 ? "–" : count + " / " + employees.length}
+                                {presentLabel(day)}
                             </td>
                         );
                     })}
