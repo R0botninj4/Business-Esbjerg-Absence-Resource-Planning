@@ -20,6 +20,7 @@ builder.Services.AddScoped<HolidayDecisionService>();
 builder.Services.AddScoped<CalendarService>();
 builder.Services.AddScoped<HolidayRuleService>();
 builder.Services.AddScoped<HolidayAccrualService>();
+builder.Services.AddHostedService<Api.BackgroundServices.HolidayAccrualWorker>();
 builder.Services.AddScoped<HolidayBalanceService>();
 builder.Services.AddScoped<HolidayLedgerService>();
 builder.Services.AddScoped<HolidayDebtService>();
