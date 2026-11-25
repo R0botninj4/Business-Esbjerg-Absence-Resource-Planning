@@ -10,8 +10,9 @@ import type { SchedulePeriod } from "../../types/employee";
 import { formatDate, displayName } from "../../utils/format";
 import { employmentText, hoursOfDay, scheduleOn, weekdayNames } from "../../utils/schedule";
 import type { CalendarEvent } from "../../types/calendarEvent";
+import type { HolidayRequest } from "../../types/holidayRequest";
 
-export function EmployeeInfo({ events }: { events: CalendarEvent[] }) {
+export function EmployeeInfo({ events, requests = [] }: { events: CalendarEvent[]; requests?: HolidayRequest[] }) {
     const { id } = useParams();
     const { employees, reload } = useEmployees();
     const [editing, setEditing] = useState(false);
@@ -20,6 +21,8 @@ export function EmployeeInfo({ events }: { events: CalendarEvent[] }) {
     const employee = employees.find(employee => employee.id === id);
     if (!employee) return <p>Employee not found.</p>;
     const currentDays = scheduleOn(employee, new Date());
+    const employeeRequests = requests.filter(request => request.employeeId === String(employee.id) &&
+        (request.status === "approved" || request.status === "pending"));
 
     async function changeSchedule(period: SchedulePeriod) {
         if (!employee) return;
@@ -41,6 +44,9 @@ export function EmployeeInfo({ events }: { events: CalendarEvent[] }) {
     function workingHours(date: Date) {
         if (!employee || date.getDay() === 0 || date.getDay() === 6) return "";
         if (events.some(event => event.type !== "info" && event.date.toDateString() === date.toDateString())) return "";
+        const holiday = employeeRequests.find(request => date >= request.start && date <= request.end);
+        if (holiday?.status === "approved") return "Holiday";
+        if (holiday?.status === "pending") return "Pending holiday";
         const day = scheduleOn(employee, date)[date.getDay() - 1];
         return day ? day.from + "–" + day.to : "Not working";
     }
@@ -65,7 +71,7 @@ export function EmployeeInfo({ events }: { events: CalendarEvent[] }) {
                 <p className="text-sm text-slate">{period.days.map((day, index) => weekdayNames[index] + ": " + (day ? day.from + "–" + day.to : "off")).join(" · ")}</p>
             </div>)}
         </div>
-        <Calendar start={null} end={null} onSelect={() => {}} events={events} dayText={workingHours} />
+        <Calendar start={null} end={null} onSelect={() => {}} events={events} requested={employeeRequests} dayText={workingHours} />
         <div className="mt-6 bg-white border border-line rounded p-6">
             <FutureBalance key={employee.id} userId={String(employee.id)} />
         </div>

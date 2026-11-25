@@ -156,8 +156,8 @@ function AppRoutes({ sicknessReports, onReportSickness, onDecideSickness }: Sick
                 <Route path="/accounting" element={<RequireRole role="Accounting"><Layout links={accountingLinks} /></RequireRole>}>
                     <Route index element={<EmployeeProvider><AccountingMain requests={requests} events={events} onDecide={decideRequest} sicknessReports={sicknessReports} onDecideSickness={onDecideSickness} /></EmployeeProvider>} />
                     <Route path="employees" element={<EmployeeProvider><EmployeeList /></EmployeeProvider>} />
-                    <Route path="schedule" element={<EmployeeProvider><WorkSchedulePage events={events} /></EmployeeProvider>} />
-                    <Route path="employees/:id" element={<EmployeeProvider><EmployeeInfo events={events} /></EmployeeProvider>} />
+                    <Route path="schedule" element={<EmployeeProvider><WorkSchedulePage events={events} requests={requests} /></EmployeeProvider>} />
+                    <Route path="employees/:id" element={<EmployeeProvider><EmployeeInfo events={events} requests={requests} /></EmployeeProvider>} />
                 </Route>
             </Routes>
         </>
