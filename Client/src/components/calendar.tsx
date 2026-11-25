@@ -55,13 +55,12 @@ export function Calendar({ start, end, onSelect, events = [], requested = [], da
         const isBetween = start && end && time > start.getTime() && time < end.getTime();
         const isWeekend = day.getDay() === 0 || day.getDay() === 6;
         const isDayOff = eventsOn(day).some(event => event.type !== "info");
-        const isRequested = requested.some(r => time >= r.start.getTime() && time <= r.end.getTime());
-        const holiday = requested.find(r => time >= r.start.getTime() && time <= r.end.getTime());
+        const holiday = requested.find(r => (r.status === "approved" || r.status === "pending") &&
+            time >= r.start.getTime() && time <= r.end.getTime());
         
         
         if (isEdge) return "bg-orange text-white";
         if (isBetween) return "bg-orange/20";
-        if (isRequested) return "bg-slate/40 text-white";
         if (isWeekend || isDayOff) return "bg-line text-slate";
         if (holiday && holiday.status === "approved") return "bg-navy text-white";
         if (holiday) return "bg-gold text-white";
