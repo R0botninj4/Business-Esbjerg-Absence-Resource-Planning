@@ -25,7 +25,7 @@ public class MigrationTests
                 new[]
                 {
                     "calendar_days", "employments", "holiday_accrual_days", "holiday_accrual_months",
-                    "holiday_balance_adjustments", "holiday_balance_conversions", "holiday_request_days", "holiday_requests", "holiday_rule_periods", "holiday_rules", "holiday_usage", "users", "work_schedule_days", "work_schedules"
+                    "holiday_balance_adjustments", "holiday_balance_conversions", "holiday_obstacle_days", "holiday_obstacles", "holiday_request_days", "holiday_requests", "holiday_rule_periods", "holiday_rules", "holiday_usage", "users", "work_schedule_days", "work_schedules"
                 },
                 tables);
 

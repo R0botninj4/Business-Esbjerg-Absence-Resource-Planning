@@ -135,6 +135,7 @@ public class HolidayRuleService
         rule.MaximumDebtDays = settings.MaximumDebtDays;
         rule.AllowTransfer = settings.AllowTransfer;
         rule.MaximumTransferDays = settings.MaximumTransferDays;
+        rule.SicknessWaitingDays = settings.SicknessWaitingDays;
         rule.CreatedAt = DateTime.UtcNow;
         rule.CreatedBy = createdBy;
 
@@ -217,6 +218,10 @@ public class HolidayRuleService
         if (settings.MaximumDebtDays < 0 || settings.MaximumTransferDays < 0)
         {
             throw new ArgumentException("Grænser for gæld og overførsel må ikke være negative.");
+        }
+        if (settings.SicknessWaitingDays < 0 || settings.SicknessWaitingDays > 366)
+        {
+            throw new ArgumentException("Karensdage ved sygdom skal være mellem 0 og 366.");
         }
 
         if (!settings.SixthWeekEnabled &&

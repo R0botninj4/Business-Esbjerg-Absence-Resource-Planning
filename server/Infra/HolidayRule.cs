@@ -43,6 +43,7 @@ public class HolidayRule
 
     [Column("maximum_transfer_days"), NotNull]
     public decimal MaximumTransferDays { get; set; }
+    [Column("sickness_waiting_days")] public int SicknessWaitingDays { get; set; } = 5;
     
     [NotColumn]
     public HolidayRulePeriodSettings? Periods { get; set; }
