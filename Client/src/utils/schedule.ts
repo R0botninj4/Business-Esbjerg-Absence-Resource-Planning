@@ -23,7 +23,8 @@ export function hoursPerWeek(days: WorkDay[]) {
 
 export function employmentText(days: WorkDay[], employmentType?: number) {
     const hours = hoursPerWeek(days);
-    let type = hours >= 37 ? "Full time" : "Part time";
+    let type = "Part time";
+    if (hours >= 37) type = "Full time";
     if (employmentType === 1) type = "Full time";
     if (employmentType === 2) type = "Part time";
     if (employmentType === 3) type = "Hourly";

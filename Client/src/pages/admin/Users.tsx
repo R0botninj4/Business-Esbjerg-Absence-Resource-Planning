@@ -92,7 +92,11 @@ export function Users() {
         const today = now.getFullYear() + "-" + String(now.getMonth() + 1).padStart(2, "0") + "-" + String(now.getDate()).padStart(2, "0");
         const periods = employments.filter(period => period.userId === userId);
         const active = periods.find(period => period.startDate <= today && (!period.endDate || period.endDate >= today));
-        if (active) return active.type === 1 ? "Full time" : active.type === 2 ? "Part time" : "Hourly";
+        if (active) {
+            if (active.type === 1) return "Full time";
+            if (active.type === 2) return "Part time";
+            return "Hourly";
+        }
         const next = periods.filter(period => period.startDate > today).sort((a, b) => a.startDate.localeCompare(b.startDate))[0];
         if (next) return "Starts " + next.startDate;
         if (periods.length > 0) return "Employment ended";

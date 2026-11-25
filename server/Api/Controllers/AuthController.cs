@@ -10,8 +10,15 @@ namespace Api.Controllers;
 
 [ApiController]
 [Route("api/auth")]
-public class AuthController(UserService userService) : ControllerBase
+public class AuthController : ControllerBase
 {
+    private readonly UserService userService;
+
+    public AuthController(UserService service)
+    {
+        userService = service;
+    }
+
     [HttpPost("login")]
     [ProducesResponseType<UserInfo>(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
