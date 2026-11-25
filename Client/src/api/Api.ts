@@ -207,7 +207,16 @@ export interface HolidayBalanceAdjustment {
   /** @format uuid */
   operationId?: string;
   /** @format uuid */
-  accrualDayId?: string;
+  accrualDayId?: null | string;
+  account?: HolidayAccount;
+  /** @format date */
+  earningStart?: string;
+  /** @format date */
+  earningEnd?: string;
+  /** @format date */
+  usageStart?: string;
+  /** @format date */
+  usageEnd?: string;
   /** @format date */
   date?: string;
   /**
@@ -385,6 +394,26 @@ export interface HolidayHoursResult {
    */
   hours?: number | string;
   days?: HolidayHoursDay[];
+}
+
+export interface HolidayOpeningBalanceRequest {
+  /** @format uuid */
+  operationId?: string;
+  account?: HolidayAccount;
+  /**
+   * @format double
+   * @pattern ^-?(?:0|[1-9]\d*)(?:\.\d+)?$
+   */
+  hours?: number | string;
+  /** @format date */
+  earningStart?: string;
+  /** @format date */
+  earningEnd?: string;
+  /** @format date */
+  usageStart?: string;
+  /** @format date */
+  usageEnd?: string;
+  reason?: string;
 }
 
 export interface HolidayRequestDay {
@@ -1585,6 +1614,27 @@ export class Api<
     ) =>
       this.request<HolidayBalanceAdjustment, any>({
         path: `/api/users/${userId}/holiday-balances/adjustments`,
+        method: "POST",
+        body: data,
+        type: ContentType.Json,
+        format: "json",
+        ...params,
+      }),
+
+    /**
+     * No description
+     *
+     * @tags HolidayBalances
+     * @name UsersHolidayBalancesOpeningBalancesCreate
+     * @request POST:/api/users/{userId}/holiday-balances/opening-balances
+     */
+    usersHolidayBalancesOpeningBalancesCreate: (
+      userId: string,
+      data: HolidayOpeningBalanceRequest,
+      params: RequestParams = {},
+    ) =>
+      this.request<HolidayBalanceAdjustment, any>({
+        path: `/api/users/${userId}/holiday-balances/opening-balances`,
         method: "POST",
         body: data,
         type: ContentType.Json,

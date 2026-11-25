@@ -3,6 +3,8 @@ import { Link, useParams } from "react-router";
 import { Calendar } from "../../components/calendar";
 import { ScheduleForm } from "../../components/scheduleForm";
 import { FutureBalance } from "../../components/futureBalance";
+import { OpeningBalanceForm } from "../../components/openingBalanceForm";
+import { useAuth } from "../../components/auth";
 import { useEmployees } from "../../components/employeeData";
 import { getEmployments, userError } from "../../api/users";
 import { saveSchedule } from "../../api/schedules";
@@ -13,6 +15,7 @@ import type { CalendarEvent } from "../../types/calendarEvent";
 
 export function EmployeeInfo({ events }: { events: CalendarEvent[] }) {
     const { id } = useParams();
+    const { user } = useAuth();
     const { employees, reload } = useEmployees();
     const [editing, setEditing] = useState(false);
     const [success, setSuccess] = useState("");
@@ -69,5 +72,6 @@ export function EmployeeInfo({ events }: { events: CalendarEvent[] }) {
         <div className="mt-6 bg-white border border-line rounded p-6">
             <FutureBalance key={employee.id} userId={String(employee.id)} />
         </div>
+        {user?.role === "Admin" && <OpeningBalanceForm key={employee.id} userId={String(employee.id)} />}
     </div>;
 }

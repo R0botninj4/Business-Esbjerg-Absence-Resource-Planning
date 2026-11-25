@@ -107,6 +107,12 @@ public class HolidayLedgerService
         return GetPeriod(periods, usage.Account, usage.EarningStart, usage.EarningEnd, usage.UsageStart, usage.UsageEnd);
     }
 
+    public static HolidayBalancePeriod ForAdjustment(List<HolidayBalancePeriod> periods, HolidayBalanceAdjustment adjustment)
+    {
+        return GetPeriod(periods, adjustment.Account, adjustment.EarningStart, adjustment.EarningEnd,
+            adjustment.UsageStart, adjustment.UsageEnd);
+    }
+
     public HolidayBalanceResult Calculate(Guid userId, DateOnly date, HolidayAccrualDay[] credits, bool forecast,
         HolidayUsage[]? selectedUsage = null)
     {
@@ -134,8 +140,7 @@ public class HolidayLedgerService
         var adjustments = db.HolidayBalanceAdjustments.Where(item => item.UserId == userId && item.Date <= date).ToArray();
         foreach (var item in adjustments)
         {
-            var source = db.HolidayAccrualDays.Single(day => day.Id == item.AccrualDayId);
-            var period = ForAccrual(result.Periods, source);
+            var period = ForAdjustment(result.Periods, item);
             period.AdjustmentHours += item.Hours;
             period.Days += ToDays(item.Hours, item.DayLength);
         }
