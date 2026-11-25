@@ -90,7 +90,15 @@ public class HolidayBalancesController : ControllerBase
         {
             return NotFound();
         }
-        return Ok(balances.Reconcile(userId));
+        try
+        {
+            return Ok(balances.Reconcile(userId));
+        }
+        catch (ArgumentException exception)
+        {
+            // Vis fx manglende regler eller ugeplan i stedet for en misvisende nulsaldo.
+            return BadRequest(new { message = exception.Message });
+        }
     }
 
     [HttpGet("conversions")]

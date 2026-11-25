@@ -43,6 +43,10 @@ public class HolidayBalanceService
 
     public HolidayBalanceResult Reconcile(Guid userId)
     {
+        // Bogfør manglende måneder før saldoen vises. Hver måned gemmes kun én gang.
+        // Dette skal ske før transaktionen nedenfor, fordi bogføring har sin egen transaktion.
+        accrual.PostMissingMonths(userId);
+
         using var transaction = db.BeginTransaction();
         db.Query<Guid>("SELECT id FROM users WHERE id=@id FOR UPDATE", new DataParameter("id", userId)).ToArray();
         conversions.Record(userId);
