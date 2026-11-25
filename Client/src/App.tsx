@@ -12,7 +12,7 @@ import { Users } from "./pages/admin/Users";
 import { AccountingMain } from "./pages/accounting/AccountingMain";
 import { EmployeeList } from "./pages/accounting/EmployeeList";
 import { EmployeeInfo } from "./pages/accounting/EmployeeInfo";
-import { createHolidayRequest, getHolidayRequests, withdrawHolidayRequest, decideHolidayRequest, type NewHolidayRequest } from "./api/holidayRequests";
+import { createHolidayRequest, getHolidayRequests, withdrawHolidayRequest, decideHolidayRequest, requestHolidayCancellation, decideHolidayCancellation, type NewHolidayRequest } from "./api/holidayRequests";
 import { userError } from "./api/users";
 import type { HolidayRequest } from "./types/holidayRequest";
 import { WorkSchedulePage } from "./pages/accounting/WorkSchedulePage";
@@ -120,12 +120,24 @@ function AppRoutes({ sicknessReports, onReportSickness, onDecideSickness }: Sick
     }
 
     async function cancelRequest(id: string) {
+        const request = requests.find(item => item.id === id);
+        if (request?.status === "approved") {
+            const saved = await requestHolidayCancellation(id);
+            setRequests(current => current.map(item => item.id === id ? saved : item));
+            return;
+        }
         await withdrawHolidayRequest(id);
         setRequests(current => current.map(request => request.id === id ? { ...request, status: "cancelled" } : request));
     }
 
     async function decideRequest(id: string, approve: boolean, comment: string) {
-        const saved = await decideHolidayRequest(id, approve, comment);
+        const request = requests.find(item => item.id === id);
+        let saved: HolidayRequest;
+        if (request?.cancellationStatus === "pending") {
+            saved = await decideHolidayCancellation(id, approve, comment);
+        } else {
+            saved = await decideHolidayRequest(id, approve, comment);
+        }
         setRequests(current => current.map(request => request.id === id ? saved : request));
     }
     return (

@@ -88,6 +88,11 @@ public class HolidayConversionService
         var result = new List<HolidayUsage>();
         foreach (var item in usage)
         {
+            // En senere annullering må ikke ændre grundlaget for en gammel omregning.
+            if (item.CancelledAt.HasValue && DateOnly.FromDateTime(item.CancelledAt.Value.ToLocalTime()) < date)
+            {
+                continue;
+            }
             var day = db.HolidayRequestDays.Single(day => day.Id == item.RequestDayId);
             var request = db.HolidayRequests.Single(request => request.Id == day.RequestId);
             if (request.DecidedAt.HasValue && DateOnly.FromDateTime(request.DecidedAt.Value.ToLocalTime()) < date)

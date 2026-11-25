@@ -17,4 +17,9 @@ public class HolidayRequest
     [Column("decided_at"), Nullable] public DateTime? DecidedAt { get; set; }
     [Column("decided_by"), Nullable] public Guid? DecidedBy { get; set; }
     [Column("decision_comment")] public string DecisionComment { get; set; } = "";
+    [Column("cancellation_status")] public string CancellationStatus { get; set; } = "";
+    [Column("cancellation_requested_at"), Nullable] public DateTime? CancellationRequestedAt { get; set; }
+    [Column("cancellation_decided_at"), Nullable] public DateTime? CancellationDecidedAt { get; set; }
+    [Column("cancellation_decided_by"), Nullable] public Guid? CancellationDecidedBy { get; set; }
+    [Column("cancellation_comment")] public string CancellationComment { get; set; } = "";
 }
