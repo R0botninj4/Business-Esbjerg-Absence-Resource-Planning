@@ -28,7 +28,7 @@ const userLinks: NavItem[] = [
     { to: "/user", label: "Overview" },
     { to: "/user/request", label: "Request holiday" },
     { to: "/user/requests", label: "My requests" },
-    { to: "/user/schedule", label: "My work schedule" },
+    { to: "/user/schedule", label: "Work schedule" },
 ];
 
 const accountingLinks: NavItem[] = [
@@ -154,7 +154,7 @@ function AppRoutes({ sicknessReports, onReportSickness, onDecideSickness }: Sick
                     <Route index element={<UserMain requests={requests} onCancel={cancelRequest} events={events} sicknessReports={mySicknessReports} />} />
                     <Route path="request" element={<RequestPage requests={requests} onAdd={addRequest} onCancel={cancelRequest} events={events} sicknessReports={mySicknessReports} onReportSickness={onReportSickness} />} />
                     <Route path="requests" element={<UserRequests requests={requests} onCancel={cancelRequest} />} />
-                    <Route path="schedule" element={<MySchedule key={user?.id} />} />
+                    <Route path="schedule" element={<MySchedule key={user?.id} events={events} requests={requests} />} />
                 </Route>
 
                 <Route path="/admin" element={<RequireRole role="Admin"><Layout links={adminLinks} /></RequireRole>}>

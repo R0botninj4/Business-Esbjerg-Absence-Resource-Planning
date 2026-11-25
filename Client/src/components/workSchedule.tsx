@@ -11,6 +11,7 @@ type Props = {
     requests: HolidayRequest[];
     events: CalendarEvent[];
     selected?: HolidayRequest;
+    viewerId?: string; // set on the employee's page: the logged-in employee (gets highlighted)
 };
 
 type Cell = {
@@ -19,20 +20,20 @@ type Cell = {
     working: boolean;
 };
 
-export function WorkSchedule({ employees, requests, events, selected }: Props) {
+export function WorkSchedule({ employees, requests, events, selected, viewerId }: Props) {
     const [monday, setMonday] = useState(startOfWeek(selected ? selected.start : new Date()));
     const [weekInput, setWeekInput] = useState("");
     const [yearInput, setYearInput] = useState("");
-    
+
     useEffect(() => {
         if (selected) setMonday(startOfWeek(selected.start));
     }, [selected]);
-    
+
     useEffect(() => {
         setWeekInput(String(weekNumber(monday)));
         setYearInput(String(weekYear(monday)));
     }, [monday]);
-    
+
     const days: Date[] = [];
     for (let i = 0; i < 7; i++) {
         days.push(new Date(monday.getFullYear(), monday.getMonth(), monday.getDate() + i));
@@ -49,7 +50,7 @@ export function WorkSchedule({ employees, requests, events, selected }: Props) {
         const week = Number(weekInput);
         const year = Number(yearInput);
         const newMonday = mondayOfWeek(year, week);
-        
+
         if (!week || !year || weekNumber(newMonday) !== week) {
             setWeekInput(String(weekNumber(monday)));
             setYearInput(String(weekYear(monday)));
@@ -61,16 +62,19 @@ export function WorkSchedule({ employees, requests, events, selected }: Props) {
 
     function getCell(employee: Employee, day: Date): Cell {
         const time = day.getTime();
-        
+
         const dayOff = events.find(e => e.type !== "info" && e.date.getTime() === time);
         if (dayOff) return { text: dayOff.title, color: "bg-line text-slate", working: false };
-        
+
         if (day.getDay() === 0 || day.getDay() === 6) return { text: "", color: "bg-line", working: false };
-        
+
+        // On the employee's page, colleagues only show approved holiday and "At work" (no pending holiday, no times)
+        const isColleague = viewerId !== undefined && String(employee.id) !== viewerId;
+
         const holiday = requests.find(
             r =>
                 r.employeeId === String(employee.id) &&
-                (r.status === "pending" || r.status === "approved") &&
+                (r.status === "approved" || (r.status === "pending" && !isColleague)) &&
                 time >= r.start.getTime() &&
                 time <= r.end.getTime()
         );
@@ -80,9 +84,15 @@ export function WorkSchedule({ employees, requests, events, selected }: Props) {
 
         const workDay = scheduleOn(employee, day)[weekdayIndex(day)];
         if (!workDay) return { text: "Not working", color: "bg-line text-slate", working: false };
-        
+
+        if (isColleague) return { text: "At work", color: "bg-white", working: true };
         return { text: workDay.from + "–" + workDay.to, color: "bg-white", working: true };
     }
+
+    // The logged-in employee is shown first, so they don't have to look for themselves
+    const me = employees.filter(e => String(e.id) === viewerId);
+    const others = employees.filter(e => String(e.id) !== viewerId);
+    const rows = [...me, ...others];
 
     function presentCount(day: Date) {
         return employees.filter(employee => getCell(employee, day).working).length;
@@ -138,23 +148,27 @@ export function WorkSchedule({ employees, requests, events, selected }: Props) {
                 </thead>
 
                 <tbody>
-                {employees.map(employee => (
-                    <tr key={employee.name}>
-                            <td className={"pr-2 " + (String(employee.id) === selected?.employeeId ? "font-bold" : "")}>
-                            {displayName(employee.name)}
-                        </td>
-                        {days.map(day => {
-                            const cell = getCell(employee, day);
-                            return (
-                                <td key={day.getTime()} className="p-0.5">
-                                    <div className={"h-11 rounded border border-line flex items-center justify-center text-center px-1 " + cell.color}>
-                                        {cell.text}
-                                    </div>
-                                </td>
-                            );
-                        })}
-                    </tr>
-                ))}
+                {rows.map(employee => {
+                    const isViewer = String(employee.id) === viewerId;
+                    return (
+                        <tr key={employee.name} className={isViewer ? "bg-orange/10" : ""}>
+                            <td className={"pr-2 pl-2 " + (isViewer || String(employee.id) === selected?.employeeId ? "font-bold" : "")}>
+                                {displayName(employee.name)}
+                                {isViewer && <span className="text-orange"> (you)</span>}
+                            </td>
+                            {days.map(day => {
+                                const cell = getCell(employee, day);
+                                return (
+                                    <td key={day.getTime()} className="p-0.5">
+                                        <div className={"h-11 rounded border border-line flex items-center justify-center text-center px-1 " + cell.color}>
+                                            {cell.text}
+                                        </div>
+                                    </td>
+                                );
+                            })}
+                        </tr>
+                    );
+                })}
 
                 <tr>
                     <td className="pt-2 font-semibold">Present</td>
