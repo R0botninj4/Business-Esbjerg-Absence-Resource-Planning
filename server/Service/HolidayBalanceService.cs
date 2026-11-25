@@ -6,10 +6,12 @@ namespace Service;
 public class HolidayBalanceService
 {
     private readonly MyDatabaseConnection db;
+    private readonly HolidayAccrualService accrual;
 
-    public HolidayBalanceService(MyDatabaseConnection database)
+    public HolidayBalanceService(MyDatabaseConnection database, HolidayAccrualService accrualService)
     {
         db = database;
+        accrual = accrualService;
     }
 
     public HolidayBalanceResult Get(Guid userId, DateOnly date)
@@ -25,6 +27,65 @@ public class HolidayBalanceService
         CalculateTotals(date, result);
 
         return result;
+    }
+
+    public HolidayBalanceResult Forecast(Guid userId, DateOnly date)
+    {
+        if (date < DateOnly.FromDateTime(DateTime.Today))
+        {
+            throw new ArgumentException("Vælg i dag eller en fremtidig dato.");
+        }
+        if (date.Year > 9998)
+        {
+            throw new ArgumentException("Datoens år er for stort.");
+        }
+
+        var forecast = accrual.Forecast(userId, date);
+        CheckWorkingHours(forecast.Days, date);
+        var result = Get(userId, date);
+        result.IncludesExpectedAccrual = true;
+
+        foreach (var day in forecast.Days)
+        {
+            // Bogførte måneder er allerede med i Get. De skal ikke tælles to gange.
+            if (day.AccrualMonthId != Guid.Empty)
+            {
+                continue;
+            }
+            var period = FindPeriod(result, day);
+            if (period == null)
+            {
+                period = CreatePeriod(day);
+                result.Periods.Add(period);
+            }
+            period.ExpectedHours += day.Hours;
+        }
+
+        // Beregn totalerne igen med den forventede optjening.
+        result.WeeksOneToFiveHours = 0;
+        result.SixthWeekHours = 0;
+        CalculateTotals(date, result);
+        return result;
+    }
+
+    private void CheckWorkingHours(List<HolidayAccrualDay> days, DateOnly date)
+    {
+        if (days.Count == 0)
+        {
+            return;
+        }
+        var latestDay = days.OrderByDescending(day => day.Date).First();
+        decimal currentHours = accrual.GetWeeklyHours(latestDay.WorkScheduleId);
+        var scheduleIds = days.Where(day => day.Hours != 0 && day.UsageStart <= date && day.UsageEnd >= date)
+            .Select(day => day.WorkScheduleId).Distinct().ToArray();
+        foreach (var scheduleId in scheduleIds)
+        {
+            if (accrual.GetWeeklyHours(scheduleId) != currentHours)
+            {
+                // Vis ikke en forkert prognose, mens saldoomregning stadig mangler.
+                throw new InvalidOperationException("Arbejdstiden har ændret sig. Prognosen kræver saldoomregning, som endnu ikke er tilsluttet.");
+            }
+        }
     }
 
     private void AddPostedAccrual(Guid userId, DateOnly date, HolidayBalanceResult result)
@@ -57,8 +118,9 @@ public class HolidayBalanceService
         foreach (var period in result.Periods)
         {
             period.PostedHours = Math.Round(period.PostedHours, 2);
+            period.ExpectedHours = Math.Round(period.ExpectedHours, 2);
             period.AdjustmentHours = Math.Round(period.AdjustmentHours, 2);
-            period.Hours = period.PostedHours + period.AdjustmentHours - period.UsedHours - period.ReservedHours;
+            period.Hours = period.PostedHours + period.ExpectedHours + period.AdjustmentHours - period.UsedHours - period.ReservedHours;
 
             // Fremtidige og udløbne perioder vises, men tæller ikke i den aktuelle sum.
             if (date < period.UsageStart)

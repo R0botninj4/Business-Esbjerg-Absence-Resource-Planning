@@ -235,7 +235,7 @@ public class HolidayAccrualService
         return periods.SixthWeek;
     }
 
-    private decimal GetWeeklyHours(Guid scheduleId)
+    public decimal GetWeeklyHours(Guid scheduleId)
     {
         decimal hours = 0;
         var days = schedules.GetDays(scheduleId);

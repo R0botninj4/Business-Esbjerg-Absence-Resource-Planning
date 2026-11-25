@@ -241,6 +241,11 @@ export interface HolidayBalancePeriod {
    * @format double
    * @pattern ^-?(?:0|[1-9]\d*)(?:\.\d+)?$
    */
+  expectedHours?: number | string;
+  /**
+   * @format double
+   * @pattern ^-?(?:0|[1-9]\d*)(?:\.\d+)?$
+   */
   adjustmentHours?: number | string;
   /**
    * @format double
@@ -262,6 +267,7 @@ export interface HolidayBalancePeriod {
 export interface HolidayBalanceResult {
   /** @format date */
   date?: string;
+  includesExpectedAccrual?: boolean;
   /**
    * @format double
    * @pattern ^-?(?:0|[1-9]\d*)(?:\.\d+)?$
@@ -1407,6 +1413,29 @@ export class Api<
     ) =>
       this.request<HolidayBalanceResult, any>({
         path: `/api/users/${userId}/holiday-balances`,
+        method: "GET",
+        query: query,
+        format: "json",
+        ...params,
+      }),
+
+    /**
+     * No description
+     *
+     * @tags HolidayBalances
+     * @name UsersHolidayBalancesForecastList
+     * @request GET:/api/users/{userId}/holiday-balances/forecast
+     */
+    usersHolidayBalancesForecastList: (
+      userId: string,
+      query?: {
+        /** @format date */
+        date?: string;
+      },
+      params: RequestParams = {},
+    ) =>
+      this.request<HolidayBalanceResult, any>({
+        path: `/api/users/${userId}/holiday-balances/forecast`,
         method: "GET",
         query: query,
         format: "json",

@@ -6,6 +6,8 @@ public class HolidayBalanceResult
 {
     public DateOnly Date { get; set; }
 
+    public bool IncludesExpectedAccrual { get; set; }
+
     // Bogført optjening og rettelser inden for en gyldig afholdelsesperiode.
     public decimal WeeksOneToFiveHours { get; set; }
 
@@ -32,6 +34,8 @@ public class HolidayBalancePeriod
     public DateOnly UsageEnd { get; set; }
 
     public decimal PostedHours { get; set; }
+
+    public decimal ExpectedHours { get; set; }
 
     public decimal AdjustmentHours { get; set; }
 

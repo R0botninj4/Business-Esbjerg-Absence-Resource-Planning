@@ -46,6 +46,35 @@ public class HolidayBalancesController : ControllerBase
         return Ok(balances.Get(userId, date));
     }
 
+    [HttpGet("forecast")]
+    public ActionResult<HolidayBalanceResult> Forecast(Guid userId, [FromQuery] DateOnly date)
+    {
+        if (!CanRead(userId))
+        {
+            return Forbid();
+        }
+        if (users.Find(userId) == null)
+        {
+            return NotFound();
+        }
+        if (date == default)
+        {
+            return BadRequest(new { message = "Vælg en dato til prognosen." });
+        }
+        try
+        {
+            return Ok(balances.Forecast(userId, date));
+        }
+        catch (ArgumentException exception)
+        {
+            return BadRequest(new { message = exception.Message });
+        }
+        catch (InvalidOperationException exception)
+        {
+            return Conflict(new { message = exception.Message });
+        }
+    }
+
     [HttpGet("adjustments")]
     public ActionResult<HolidayBalanceAdjustment[]> GetAdjustments(Guid userId)
     {

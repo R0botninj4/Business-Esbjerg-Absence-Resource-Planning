@@ -3,6 +3,7 @@ import { Link } from "react-router";
 import { InfoBox } from "../../components/infoBox";
 import { RequestCard } from "../../components/requestCard";
 import { PostedBalance } from "../../components/postedBalance";
+import { FutureBalance } from "../../components/futureBalance";
 import { useAuth } from "../../components/auth";
 import type { HolidayRequest } from "../../types/holidayRequest";
 import { formatDate } from "../../utils/format";
@@ -44,6 +45,9 @@ export function UserMain({ requests, onCancel, events, sicknessReports }: Props)
 
             <div className="mb-6 bg-white border border-line rounded p-6">
                 {user && <PostedBalance userId={user.id} />}
+            </div>
+            <div className="mb-6 bg-white border border-line rounded p-6">
+                {user && <FutureBalance key={user.id} userId={user.id} />}
             </div>
             {/* Info boxes */}
             <div className="grid grid-cols-3 gap-6 mb-8">
