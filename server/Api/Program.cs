@@ -1,6 +1,5 @@
 using Infra;
 using LinqToDB;
-using LinqToDB.Data;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Service;
@@ -11,7 +10,6 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddScoped<IPasswordHasher<User>, PasswordHasher<User>>();
 builder.Services.AddScoped<UserService>();
 builder.Services.AddControllers();
-builder.Services.AddScoped<UserService>();
 builder.Services.AddScoped<EmploymentService>();
 builder.Services.AddScoped<WorkScheduleService>();
 builder.Services.AddScoped<HolidayHoursService>();
@@ -48,9 +46,13 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
         options.Events.OnValidatePrincipal = context =>
         {
             var principal = context.Principal;
-            var user = Guid.TryParse(principal?.FindFirstValue(ClaimTypes.NameIdentifier), out var id)
-                ? context.HttpContext.RequestServices.GetRequiredService<UserService>().Find(id)
-                : null;
+            User? user = null;
+            var userIdText = principal?.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (Guid.TryParse(userIdText, out var id))
+            {
+                var users = context.HttpContext.RequestServices.GetRequiredService<UserService>();
+                user = users.Find(id);
+            }
 
             if (user is null ||
                 !user.IsActive ||

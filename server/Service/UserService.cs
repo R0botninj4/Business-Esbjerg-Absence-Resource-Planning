@@ -5,11 +5,26 @@ using LinqToDB;
 
 namespace Service;
 
-public class UserService(MyDatabaseConnection db, IPasswordHasher<User> passwordHasher)
+public class UserService
 {
-    public User[] List() => db.Users.OrderBy(user => user.Email).ToArray();
+    private readonly MyDatabaseConnection db;
+    private readonly IPasswordHasher<User> passwordHasher;
 
-    public User? Find(Guid id) => db.Users.SingleOrDefault(user => user.Id == id);
+    public UserService(MyDatabaseConnection database, IPasswordHasher<User> hasher)
+    {
+        db = database;
+        passwordHasher = hasher;
+    }
+
+    public User[] List()
+    {
+        return db.Users.OrderBy(user => user.Email).ToArray();
+    }
+
+    public User? Find(Guid id)
+    {
+        return db.Users.SingleOrDefault(user => user.Id == id);
+    }
 
     public User Create(string email, string password, string role)
     {
@@ -133,7 +148,11 @@ public class UserService(MyDatabaseConnection db, IPasswordHasher<User> password
         }
 
         var result = passwordHasher.VerifyHashedPassword(user, user.PasswordHash, password);
-        return result == PasswordVerificationResult.Failed ? null : user;
+        if (result == PasswordVerificationResult.Failed)
+        {
+            return null;
+        }
+        return user;
     }
 
     public static void ValidateEmail(string email, string role)

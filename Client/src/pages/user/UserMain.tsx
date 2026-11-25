@@ -6,7 +6,6 @@ import { PostedBalance } from "../../components/postedBalance";
 import { FutureBalance } from "../../components/futureBalance";
 import { useAuth } from "../../components/auth";
 import type { HolidayRequest } from "../../types/holidayRequest";
-import { formatDate } from "../../utils/format";
 import type { CalendarEvent } from "../../types/calendarEvent";
 import type { SicknessReport } from "../../types/sicknessReport";
 import { SicknessList } from "../../components/sicknessList";

@@ -121,7 +121,11 @@ public class HolidayDebtService
                 {
                     continue;
                 }
-                var anchor = rule.EffectiveFrom > lastDate ? rule.EffectiveFrom : lastDate;
+                var anchor = lastDate;
+                if (rule.EffectiveFrom > lastDate)
+                {
+                    anchor = rule.EffectiveFrom;
+                }
                 if (RuleOn(history, anchor).Id != rule.Id)
                 {
                     continue;

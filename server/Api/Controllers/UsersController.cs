@@ -11,8 +11,15 @@ namespace Api.Controllers;
 [ApiController]
 [Authorize(Roles = "Admin")]
 [Route("api/users")]
-public class UsersController(UserService users) : ControllerBase
+public class UsersController : ControllerBase
 {
+    private readonly UserService users;
+
+    public UsersController(UserService service)
+    {
+        users = service;
+    }
+
     [HttpGet]
     public IEnumerable<UserResponse> List() => users.List().Select(UserResponse.From);
 
@@ -20,7 +27,11 @@ public class UsersController(UserService users) : ControllerBase
     public ActionResult<UserResponse> Get(Guid id)
     {
         var user = users.Find(id);
-        return user is null ? NotFound() : Ok(UserResponse.From(user));
+        if (user == null)
+        {
+            return NotFound();
+        }
+        return Ok(UserResponse.From(user));
     }
 
     [HttpPost]
@@ -55,7 +66,11 @@ public class UsersController(UserService users) : ControllerBase
 
         try
         {
-            return users.Update(id, request.Email, request.Role) ? NoContent() : NotFound();
+            if (!users.Update(id, request.Email, request.Role))
+            {
+                return NotFound();
+            }
+            return NoContent();
         }
         catch (AccountRoleConflictException exception)
         {
@@ -81,7 +96,11 @@ public class UsersController(UserService users) : ControllerBase
 
         try
         {
-            return users.Delete(id) ? NoContent() : NotFound();
+            if (!users.Delete(id))
+            {
+                return NotFound();
+            }
+            return NoContent();
         }
         catch (AccountRoleConflictException exception)
         {
@@ -94,7 +113,11 @@ public class UsersController(UserService users) : ControllerBase
     {
         try
         {
-            return users.Reactivate(id) ? NoContent() : NotFound();
+            if (!users.Reactivate(id))
+            {
+                return NotFound();
+            }
+            return NoContent();
         }
         catch (AccountRoleConflictException exception)
         {

@@ -929,22 +929,6 @@ export interface UserResponse {
   isActive: boolean;
 }
 
-export interface WeatherForecast {
-  /** @format date */
-  date?: string;
-  /**
-   * @format int32
-   * @pattern ^-?(?:0|[1-9]\d*)$
-   */
-  temperatureC?: number | string;
-  /**
-   * @format int32
-   * @pattern ^-?(?:0|[1-9]\d*)$
-   */
-  temperatureF?: number | string;
-  summary?: null | string;
-}
-
 export interface WorkSchedule {
   /** @format uuid */
   id?: string;
@@ -2145,22 +2129,6 @@ export class Api<
         method: "PUT",
         body: data,
         type: ContentType.Json,
-        format: "json",
-        ...params,
-      }),
-  };
-  weatherForecast = {
-    /**
-     * No description
-     *
-     * @tags WeatherForecast
-     * @name GetWeatherForecast
-     * @request GET:/WeatherForecast
-     */
-    getWeatherForecast: (params: RequestParams = {}) =>
-      this.request<WeatherForecast[], any>({
-        path: `/WeatherForecast`,
-        method: "GET",
         format: "json",
         ...params,
       }),
