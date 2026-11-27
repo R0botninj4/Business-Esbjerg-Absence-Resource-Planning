@@ -145,6 +145,13 @@ public class HolidayLedgerService
             period.Days += ToDays(item.Hours, item.DayLength);
         }
 
+        var transfers = db.HolidayTransfers.Where(item => item.UserId == userId && item.Status == "approved").ToArray();
+        foreach (var transfer in transfers)
+        {
+            if (transfer.DebitDate <= date) ApplyTransferOut(result.Periods, transfer);
+            if (transfer.EffectiveDate <= date) ApplyTransferIn(result.Periods, transfer);
+        }
+
         var usage = selectedUsage ?? db.HolidayUsage.Where(item => item.UserId == userId && item.CancelledAt == null).ToArray();
         foreach (var item in usage)
         {
@@ -165,7 +172,7 @@ public class HolidayLedgerService
         {
             period.DayLength = length;
             period.Hours = Math.Round((period.Days - period.ReservedDays) * length, 2);
-            period.ConversionHours = period.Hours - (period.PostedHours + period.ExpectedHours + period.AdjustmentHours - period.UsedHours - period.ReservedHours);
+            period.ConversionHours = period.Hours - (period.PostedHours + period.ExpectedHours + period.AdjustmentHours + period.TransferInHours - period.TransferOutHours - period.UsedHours - period.ReservedHours);
             period.DebtHours = Math.Round(Math.Max(0, -period.Days) * length, 2);
             if (date < period.UsageStart || date > period.UsageEnd)
             {
@@ -190,5 +197,23 @@ public class HolidayLedgerService
         var monthIds = db.HolidayAccrualMonths.Where(month => month.UserId == userId).Select(month => month.Id).ToArray();
         return db.HolidayAccrualDays.Where(day => monthIds.Contains(day.AccrualMonthId) && day.Date <= date)
             .OrderBy(day => day.Date).ToArray();
+    }
+
+    public static void ApplyTransferOut(List<HolidayBalancePeriod> periods, HolidayTransfer transfer)
+    {
+        var source = GetPeriod(periods, transfer.Account, transfer.EarningStart, transfer.EarningEnd,
+            transfer.SourceUsageStart, transfer.SourceUsageEnd);
+        source.Days -= transfer.Days;
+        source.TransferOutHours += transfer.Hours;
+    }
+
+    public static void ApplyTransferIn(List<HolidayBalancePeriod> periods, HolidayTransfer transfer)
+    {
+        // Behold det oprindelige optjeningsår, men brug den nye afholdelsesperiode.
+        var target = GetPeriod(periods, transfer.Account, transfer.EarningStart, transfer.EarningEnd,
+            transfer.TargetUsageStart, transfer.TargetUsageEnd);
+        target.Days += transfer.Days;
+        target.TransferInHours += transfer.Hours;
+        target.IsTransferred = true;
     }
 }

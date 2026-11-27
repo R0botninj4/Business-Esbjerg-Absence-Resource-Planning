@@ -30,6 +30,7 @@ public class HolidayDebtService
             }
         }
         var adjustments = db.HolidayBalanceAdjustments.Where(item => item.UserId == userId).ToArray();
+        var transfers = db.HolidayTransfers.Where(item => item.UserId == userId && item.Status == "approved").ToArray();
         var today = DateOnly.FromDateTime(DateTime.Today);
         var lastDate = today;
         foreach (var day in requestedDays)
@@ -82,6 +83,11 @@ public class HolidayDebtService
             {
                 var period = HolidayLedgerService.ForAdjustment(periods, adjustment);
                 period.Days += HolidayLedgerService.ToDays(adjustment.Hours, adjustment.DayLength);
+            }
+            foreach (var transfer in transfers)
+            {
+                if (transfer.DebitDate == date) HolidayLedgerService.ApplyTransferOut(periods, transfer);
+                if (transfer.EffectiveDate == date) HolidayLedgerService.ApplyTransferIn(periods, transfer);
             }
             foreach (var usage in usageDates[date])
             {
@@ -169,7 +175,7 @@ public class HolidayDebtService
         decimal length = ledger.DayLength(day.WorkScheduleId.Value);
         decimal remaining = day.Hours;
         // Brug først den gyldige periode, der udløber tidligst.
-        foreach (var period in periods.OrderBy(period => period.UsageEnd).ToArray())
+        foreach (var period in periods.OrderByDescending(period => period.IsTransferred).ThenBy(period => period.UsageEnd).ToArray())
         {
             if (period.Account != account || day.Date < period.UsageStart || day.Date > period.UsageEnd || period.Days <= 0)
             {

@@ -7,6 +7,7 @@ import { dateText } from "../../api/schedules";
 const groups: { title: string; fields: [keyof RuleSettings, string][] }[] = [
     { title: "Accrual and accounts", fields: [
         ["sicknessWaitingDays", "Sick days without replacement during week 1–5"],
+        ["nonTransferableHolidayDays", "Week 1–5: protected days that cannot be transferred"],
         ["holidayDaysPerMonth", "Week 1–5: days earned per month"], ["holidayDaysPerYear", "Week 1–5: days per full year"],
         ["sixthWeekHoursPerMonth", "Week 6: full-time hours per month"], ["sixthWeekHoursPerCalendarDay", "Week 6: hours per calendar day in a partial month"],
         ["fullTimeHoursPerWeek", "Full-time working hours per week"], ["maximumDebtDays", "Maximum holiday debt (days)"], ["maximumTransferDays", "Maximum transfer (days)"],

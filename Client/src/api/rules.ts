@@ -2,6 +2,7 @@ import { api } from "./client";
 import { ContentType } from "./Api";
 
 export type RuleSettings = {
+    nonTransferableHolidayDays: number;
     sicknessWaitingDays: number;
     name: string;
     holidayDaysPerMonth: number;
@@ -45,6 +46,7 @@ export type RuleSettings = {
 };
 
 export type RuleVersion = {
+    nonTransferableHolidayDays: number;
     sicknessWaitingDays: number;
     id: string;
     effectiveFrom: string;
@@ -61,7 +63,7 @@ export type RuleVersion = {
     maximumDebtDays: number;
     allowTransfer: boolean;
     maximumTransferDays: number;
-    periods: Omit<RuleSettings, "sicknessWaitingDays" | "name" | "holidayDaysPerMonth" | "holidayDaysPerYear" | "sixthWeekHoursPerCalendarDay" | "sixthWeekEnabled" | "sixthWeekHoursPerMonth" | "fullTimeHoursPerWeek" | "maximumDebtDays" | "allowTransfer" | "maximumTransferDays"> | null;
+    periods: Omit<RuleSettings, "nonTransferableHolidayDays" | "sicknessWaitingDays" | "name" | "holidayDaysPerMonth" | "holidayDaysPerYear" | "sixthWeekHoursPerCalendarDay" | "sixthWeekEnabled" | "sixthWeekHoursPerMonth" | "fullTimeHoursPerWeek" | "maximumDebtDays" | "allowTransfer" | "maximumTransferDays"> | null;
 };
 
 export function getRuleHistory() {
@@ -84,6 +86,7 @@ export function settingsFromVersion(version: RuleVersion): RuleSettings | null {
     if (!version.periods || version.holidayDaysPerYear === null || version.sixthWeekHoursPerCalendarDay === null) return null;
     return {
         ...version.periods,
+        nonTransferableHolidayDays: version.nonTransferableHolidayDays,
         sicknessWaitingDays: version.sicknessWaitingDays,
         name: version.name, holidayDaysPerMonth: version.holidayDaysPerMonth,
         holidayDaysPerYear: version.holidayDaysPerYear,

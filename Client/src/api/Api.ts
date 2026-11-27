@@ -379,6 +379,16 @@ export interface HolidayBalancePeriod {
    * @format double
    * @pattern ^-?(?:0|[1-9]\d*)(?:\.\d+)?$
    */
+  transferInHours?: number | string;
+  /**
+   * @format double
+   * @pattern ^-?(?:0|[1-9]\d*)(?:\.\d+)?$
+   */
+  transferOutHours?: number | string;
+  /**
+   * @format double
+   * @pattern ^-?(?:0|[1-9]\d*)(?:\.\d+)?$
+   */
   usedHours?: number | string;
   /**
    * @format double
@@ -683,6 +693,11 @@ export interface HolidayRule {
    */
   maximumTransferDays?: number | string;
   /**
+   * @format double
+   * @pattern ^-?(?:0|[1-9]\d*)(?:\.\d+)?$
+   */
+  nonTransferableHolidayDays?: number | string;
+  /**
    * @format int32
    * @pattern ^-?(?:0|[1-9]\d*)$
    */
@@ -862,6 +877,11 @@ export interface HolidayRuleSettings {
    * @pattern ^-?(?:0|[1-9]\d*)$
    */
   sicknessWaitingDays?: number | string;
+  /**
+   * @format double
+   * @pattern ^-?(?:0|[1-9]\d*)(?:\.\d+)?$
+   */
+  nonTransferableHolidayDays?: number | string;
   /**
    * @minLength 0
    * @maxLength 100
@@ -1049,6 +1069,80 @@ export interface HolidayRuleSettings {
    * @pattern ^-?(?:0|[1-9]\d*)$
    */
   sixthWeekTransferDeadlineDay: number | string;
+}
+
+export interface HolidayTransfer {
+  /** @format uuid */
+  id?: string;
+  /** @format uuid */
+  operationId?: string;
+  /** @format uuid */
+  userId?: string;
+  /** @format uuid */
+  accrualDayId?: string;
+  /** @format uuid */
+  ruleId?: string;
+  account?: HolidayAccount;
+  /** @format date */
+  earningStart?: string;
+  /** @format date */
+  earningEnd?: string;
+  /** @format date */
+  sourceUsageStart?: string;
+  /** @format date */
+  sourceUsageEnd?: string;
+  /** @format date */
+  targetUsageStart?: string;
+  /** @format date */
+  targetUsageEnd?: string;
+  /** @format date */
+  deadline?: string;
+  /**
+   * @format double
+   * @pattern ^-?(?:0|[1-9]\d*)(?:\.\d+)?$
+   */
+  hours?: number | string;
+  /**
+   * @format double
+   * @pattern ^-?(?:0|[1-9]\d*)(?:\.\d+)?$
+   */
+  days?: number | string;
+  /**
+   * @format double
+   * @pattern ^-?(?:0|[1-9]\d*)(?:\.\d+)?$
+   */
+  dayLength?: number | string;
+  /** @format date */
+  debitDate?: null | string;
+  /** @format date */
+  effectiveDate?: null | string;
+  status?: string;
+  agreementReference?: string;
+  comment?: string;
+  /** @format date-time */
+  createdAt?: string;
+  /** @format date-time */
+  decidedAt?: null | string;
+  /** @format uuid */
+  decidedBy?: null | string;
+}
+
+export interface HolidayTransferDecisionInput {
+  approve?: boolean;
+  agreementReference?: string;
+  comment?: string;
+}
+
+export interface HolidayTransferInput {
+  /** @format uuid */
+  operationId?: string;
+  /** @format uuid */
+  accrualDayId?: string;
+  /**
+   * @format double
+   * @pattern ^-?(?:0|[1-9]\d*)(?:\.\d+)?$
+   */
+  hours?: number | string;
 }
 
 export interface LoginRequest {
@@ -2203,6 +2297,77 @@ export class Api<
         path: `/api/holiday-rules/for-date`,
         method: "GET",
         query: query,
+        format: "json",
+        ...params,
+      }),
+
+    /**
+     * No description
+     *
+     * @tags HolidayTransfers
+     * @name HolidayTransfersList
+     * @request GET:/api/holiday-transfers
+     */
+    holidayTransfersList: (params: RequestParams = {}) =>
+      this.request<HolidayTransfer[], any>({
+        path: `/api/holiday-transfers`,
+        method: "GET",
+        format: "json",
+        ...params,
+      }),
+
+    /**
+     * No description
+     *
+     * @tags HolidayTransfers
+     * @name HolidayTransfersCreate
+     * @request POST:/api/holiday-transfers
+     */
+    holidayTransfersCreate: (
+      data: HolidayTransferInput,
+      params: RequestParams = {},
+    ) =>
+      this.request<HolidayTransfer, any>({
+        path: `/api/holiday-transfers`,
+        method: "POST",
+        body: data,
+        type: ContentType.Json,
+        format: "json",
+        ...params,
+      }),
+
+    /**
+     * No description
+     *
+     * @tags HolidayTransfers
+     * @name HolidayTransfersDetail
+     * @request GET:/api/holiday-transfers/{id}
+     */
+    holidayTransfersDetail: (id: string, params: RequestParams = {}) =>
+      this.request<HolidayTransfer, any>({
+        path: `/api/holiday-transfers/${id}`,
+        method: "GET",
+        format: "json",
+        ...params,
+      }),
+
+    /**
+     * No description
+     *
+     * @tags HolidayTransfers
+     * @name HolidayTransfersDecisionCreate
+     * @request POST:/api/holiday-transfers/{id}/decision
+     */
+    holidayTransfersDecisionCreate: (
+      id: string,
+      data: HolidayTransferDecisionInput,
+      params: RequestParams = {},
+    ) =>
+      this.request<HolidayTransfer, any>({
+        path: `/api/holiday-transfers/${id}/decision`,
+        method: "POST",
+        body: data,
+        type: ContentType.Json,
         format: "json",
         ...params,
       }),
