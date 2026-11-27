@@ -6,6 +6,7 @@ namespace Service;
 public class HolidayRuleSettings
 {
     public int SicknessWaitingDays { get; set; } = 5;
+    public decimal NonTransferableHolidayDays { get; set; } = 20;
     [Required, StringLength(100)]
     public string Name { get; set; } = "";
 

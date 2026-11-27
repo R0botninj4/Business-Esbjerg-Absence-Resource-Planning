@@ -41,6 +41,8 @@ public class HolidayBalancePeriod
     public decimal ExpectedHours { get; set; }
 
     public decimal AdjustmentHours { get; set; }
+    public decimal TransferInHours { get; set; }
+    public decimal TransferOutHours { get; set; }
 
     public decimal UsedHours { get; set; }
 
@@ -55,6 +57,7 @@ public class HolidayBalancePeriod
     // Dage bruges internt ved omregning. API'et viser saldoen i timer.
     internal decimal Days { get; set; }
     internal decimal ReservedDays { get; set; }
+    internal bool IsTransferred { get; set; }
 
     // To poster må kun lægges sammen, hvis konto og begge perioder er ens.
     public bool Matches(HolidayAccrualDay day)

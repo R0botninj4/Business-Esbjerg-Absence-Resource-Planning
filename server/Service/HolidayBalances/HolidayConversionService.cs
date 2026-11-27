@@ -38,7 +38,9 @@ public class HolidayConversionService
             var adjustmentIds = db.HolidayBalanceAdjustments.Where(item => item.UserId == userId && item.Date <= date)
                 .Select(item => item.Id).ToArray();
             // Poster er uforanderlige. Nye poster giver et nyt grundlag.
+            int transferCount = db.HolidayTransfers.Count(item => item.UserId == userId && item.Status == "approved" && item.DebitDate <= date);
             string basisKey = credits.Length + "/" + knownUsage.Length + "/" + adjustmentIds.Length;
+            if (transferCount > 0) basisKey += "/" + transferCount;
             foreach (var period in balance.Periods)
             {
                 if (period.UsageEnd < plan.StartDate)

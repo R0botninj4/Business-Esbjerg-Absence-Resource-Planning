@@ -10,6 +10,8 @@ type Period = {
     postedHours: number;
     expectedHours: number;
     adjustmentHours: number;
+    transferInHours: number;
+    transferOutHours: number;
     usedHours: number;
     reservedHours: number;
     hours: number;
@@ -88,6 +90,7 @@ export function FutureBalance({ userId }: { userId: string }) {
                     <p>Usage: {period.usageStart} – {period.usageEnd}</p>
                     <p>Posted: {Number(period.postedHours).toFixed(2)} h · Expected: {Number(period.expectedHours).toFixed(2)} h · Adjustments: {Number(period.adjustmentHours).toFixed(2)} h</p>
                     <p>Used: {Number(period.usedHours).toFixed(2)} h · Reserved: {Number(period.reservedHours).toFixed(2)} h · Remaining: {Number(period.hours).toFixed(2)} h</p>
+                    <p>Transferred in: {Number(period.transferInHours).toFixed(2)} h · Transferred out: {Number(period.transferOutHours).toFixed(2)} h</p>
                     <p>Working-time valuation: {Number(period.conversionHours).toFixed(2)} h</p>
                 </div>)}
             </div>
